@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simple Sheet FREE</title>
-    
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4db8ff">
+    <title>Simple Sheet</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#e0e0e0">
 
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon-96x96.png">
 
     <style>
-        /* --- アプリ版と共通のスタイル --- */
+        /* --- 基本スタイル --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px; background-color: #f0f2f5; margin: 0; box-sizing: border-box; font-size: 16px; color: #000; }
         * { box-sizing: border-box; }
         .app-grid { display: flex; gap: 12px; max-width: 1400px; margin: 0 auto; }
         .calculator-container { flex: 3; min-width: 0; background-color: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1); width: 100%; }
         
+        /* 行のスタイル */
         .row { display: flex; margin-bottom: 12px; padding: 12px; border: 1px solid #ccc; border-radius: 10px; background-color: #fff; gap: 8px; }
         @media screen and (min-width: 801px) {
             .row { flex-direction: row; align-items: center; justify-content: space-between; }
@@ -27,20 +26,31 @@
             .result-area { flex: 2; justify-content: flex-end; background: #f8f9fa; padding: 5px 10px; border-radius: 6px; }
             .result-text { font-size: 1.6em; }
         }
+        /* スマホ用 */
         @media screen and (max-width: 800px) {
+            body { padding-top: calc(env(safe-area-inset-top) + 10px) !important; padding-left: 8px; padding-right: 8px; }
+            .app-grid { display: block; }
+            .calculator-container { padding: 12px; }
+            .top-controls { flex-wrap: wrap; }
             .row { flex-direction: column !important; align-items: stretch !important; }
             .text-label-input { width: 100% !important; font-size: 1.1em; padding: 10px; margin-bottom: 5px; }
             .calc-area { width: 100% !important; justify-content: center !important; padding: 10px 0; border-top: 1px dashed #eee; border-bottom: 1px dashed #eee; }
             .result-area { width: 100% !important; justify-content: space-between !important; background: #eefbff; padding: 12px; border-radius: 8px; }
             .result-text { font-size: 2.2em; }
+            
+            .side-calc { display: none; position: fixed; bottom: 80px; right: 15px; z-index: 1000; width: 280px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+            .side-calc.active { display: block; }
+            .calc-toggle-btn { display: block; }
+            .mobile-calc-close { display: block; }
         }
         
+        /* 入力フォーム類 */
         .text-label-input { padding: 8px; border: 2px solid #000; border-radius: 6px; font-weight: bold; color: #000; outline: none; }
         .calc-area { display: flex; align-items: center; gap: 8px; }
         .multiplier-input { width: 110px; font-size: 1.5em; padding: 8px; text-align: right; border: 3px solid #007bff; border-radius: 6px; font-weight: bold; color: #000; outline: none; }
-        .multiplier-input::placeholder, .master-input::placeholder { color: #ccc; font-weight: normal; }
         .result-text { font-weight: bold; color: #007bff; }
         
+        /* オペレータ・トグル */
         .operator-group { display: flex; flex-direction: column; align-items: center; width: 32px; }
         .operator-control { font-size: 0.7em; background: #333; color: #fff; width: 100%; height: 20px; display: flex; justify-content: center; align-items: center; border-radius: 3px; cursor: pointer; }
         .operator-display { font-size: 1.6em; font-weight: bold; text-align: center; color: #000; height: 35px; line-height: 35px; width: 100%; }
@@ -49,55 +59,59 @@
         .base-toggle.chain { background: #007bff; color: #fff; border-color: #007bff; }
         .action-btn { border: none; background: none; cursor: pointer; font-size: 1.8em; opacity: 0.7; padding: 5px; }
         
+        /* マスター行 */
         .master-row { padding: 12px; margin-bottom: 12px; border: 3px solid #dc3545; border-radius: 10px; background-color: #fff; display: flex; align-items: center; justify-content: space-between; }
         .master-input { width: 45%; padding: 8px; border: 2px solid #dc3545; border-radius: 6px; font-size: 1.5em; text-align: right; font-weight: bold; color: #000; outline: none; }
         
+        /* ストレージバー */
         .storage-bar { background: #dee2e6; border: 2px solid #666; border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
         .storage-controls { display: flex; align-items: center; gap: 10px; }
         .save-btn-main { background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        .edit-toggle-btn { background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8em; }
-        .save-list-container { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; min-height: 45px; align-items: center; color: #666; font-size: 0.8em; }
+        .edit-toggle-btn { background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.4em; }
         
+        /* ユーティリティバー */
+        .utility-bar { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .util-btn { border: none; background: #6c757d; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; min-width: 60px; }
+        .util-btn.manual { background: #17a2b8; width: auto; }
+        .util-btn.reset { background: #dc3545; }
+
+        /* サイド計算機 */
         .side-calc { flex: 1; min-width: 280px; background: #333; padding: 12px; border-radius: 10px; color: white; height: fit-content; position: sticky; top: 8px; }
-        .calc-display { width: 100%; height: 52px; background: #222; color: #fff; text-align: right; font-size: 1.8em; padding: 8px; border-radius: 6px; margin-bottom: 8px; border: none; outline: none; }
+        .calc-display-wrap { position: relative; margin-bottom: 10px; }
+        .calc-display { width: 100%; height: 52px; background: #222; color: #fff; text-align: right; font-size: 1.8em; padding: 8px 45px 8px 8px; border-radius: 6px; border: none; outline: none; }
+        .calc-copy-btn-in { position: absolute; right: 5px; top: 5px; bottom: 5px; width: 40px; background: #007bff; border: none; border-radius: 4px; font-size: 1.2em; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.9; color: white; }
+        
         .calc-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .calc-btn { padding: 15px 5px; border: none; border-radius: 6px; cursor: pointer; font-size: 1.25em; font-weight: bold; background: #555; color: white; }
         .calc-btn.op { background: #f39c12; }
         .calc-btn.equal { background: #27ae60; grid-column: span 2; }
         .calc-btn.clear { background: #c0392b; }
+        
         @media screen and (max-width: 900px) {
             .side-calc { display: none; position: fixed; bottom: 80px; right: 15px; z-index: 1000; width: 280px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
             .side-calc.active { display: block; }
         }
         
-        .mode-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
-        .mode-button { flex: 1; padding: 12px 8px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; flex-direction: column; align-items: center; min-height: 85px; color: #000; transition: 0.2s; }
-        .mode-button.active { background-color: #007bff; color: white; }
-        .mode-desc { font-size: 0.7em; margin-top: 6px; opacity: 0.9; font-weight: normal; line-height: 1.3; text-align: center; }
-        
-        .util-btn { border: none; background: #6c757d; color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
         #saveMessage { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 12px 25px; border-radius: 25px; opacity: 0; transition: opacity 0.3s; z-index: 2000; pointer-events: none; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .calc-toggle-btn { display: none; position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 50%; background: #333; color: white; border: none; font-size: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1001; cursor: pointer; }
         @media screen and (max-width: 900px) { .calc-toggle-btn { display: block; } }
         .mobile-calc-close { display: none; background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; }
         @media screen and (max-width: 900px) { .mobile-calc-close { display: block; } }
 
-        /* --- モーダル (機能制限用) --- */
+        /* モーダル */
         .pro-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3000; justify-content: center; align-items: center; padding: 20px; }
         .pro-modal-overlay.active { display: flex; }
-        .pro-modal-content { background: #fff; padding: 25px; border-radius: 15px; text-align: center; max-width: 350px; width: 100%; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: popIn 0.3s ease; position: relative; }
+        .pro-modal-content { background: #fff; padding: 25px; border-radius: 15px; text-align: center; max-width: 350px; width: 100%; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: popIn 0.3s ease; }
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .pro-icon { font-size: 3em; margin-bottom: 10px; }
         .pro-title { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; color: #333; }
-        .pro-desc { color: #666; margin-bottom: 20px; line-height: 1.5; word-break: break-word; }
-        
-        /* ボタン共通スタイル */
-        .pro-btn-buy { display: block; width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; text-decoration: none; border-radius: 25px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(118, 75, 162, 0.4); border: none; cursor: pointer; font-size: 1.1em; }
+        .pro-desc { color: #666; margin-bottom: 20px; line-height: 1.5; text-align: left; white-space: pre-wrap; }
+        .pro-btn-buy { display: block; width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-weight: bold; text-decoration: none; border-radius: 25px; margin-bottom: 10px; border: none; cursor: pointer; font-size: 1.1em; }
         .pro-btn-close { background: none; border: none; color: #999; cursor: pointer; text-decoration: underline; font-size: 0.9em; }
-
-        /* ロケットボタン: 黒グラデ (PRO誘導) */
-        .title-pro-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #1a237e 0%, #000 100%); color: white; text-decoration: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 3px 6px rgba(0,0,0,0.15); margin: 0 auto 15px auto; transition: transform 0.2s; }
-        .title-pro-btn:active { transform: scale(0.98); }
+        .url-box { width: 100%; padding: 10px; margin-bottom: 15px; background: #f0f2f5; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9em; color: #333; }
+        .text-area-import { width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; background: #f9f9f9; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9em; color: #333; resize: none; }
+        
+        .title-pro-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #1a237e 0%, #000 100%); color: white; text-decoration: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 3px 6px rgba(0,0,0,0.15); margin: 0 auto 15px auto; transition: transform 0.2s; border:none; cursor:pointer; }
     </style>
 </head>
 <body onload="init()">
@@ -108,9 +122,38 @@
         <div class="pro-modal-content">
             <div class="pro-icon">💎</div>
             <div id="modalTitle" class="pro-title">Pro Feature</div>
-            <div id="modalDesc" class="pro-desc">Save, Export are available in the Pro version.</div>
-            <a href="https://play.google.com/store/apps/details?id=com.jetdev.simplesheetpro" target="_blank" class="pro-btn-buy" id="modalBtn">Upgrade Now</a>
+            <div id="modalDesc" class="pro-desc" style="text-align:center;"></div>
+            <button class="pro-btn-buy" id="modalBtn" onclick="alert('Coming soon with IAP!')">Upgrade to Pro</button>
             <button class="pro-btn-close" id="btnClosePro" onclick="closeProModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="pcModal" class="pro-modal-overlay">
+        <div class="pro-modal-content">
+            <div class="pro-icon">💻</div>
+            <div id="pcModalTitle" class="pro-title">PC / Web Version</div>
+            <div id="pcModalDesc" class="pro-desc" style="margin-bottom: 10px; text-align:center;"></div>
+            <input type="text" class="url-box" id="pcUrlInput" value="https://thejetdev.github.io/simple-sheet-free-v14/" readonly>
+            <button class="pro-btn-buy" id="btnCopyUrl" onclick="copyPcUrl()" style="background: linear-gradient(135deg, #1a237e, #283593);">Copy URL</button>
+            <button class="pro-btn-close" id="btnClosePc" onclick="closePcModal()">Close</button>
+        </div>
+    </div>
+    
+    <div id="manualModal" class="pro-modal-overlay">
+        <div class="pro-modal-content" style="max-width: 450px; text-align:left;">
+            <div id="manTitle" class="pro-title" style="text-align:center; border-bottom:1px solid #eee; padding-bottom:10px;">Manual</div>
+            <div id="manBody" class="pro-desc" style="margin-top:15px; font-size:0.95rem; white-space: pre-wrap;"></div>
+            <button class="pro-btn-close" onclick="closeModal('manualModal')" id="manClose" style="width:100%; text-decoration:none; background:#eee; padding:10px; border-radius:20px; font-weight:bold; color:#555;">OK</button>
+        </div>
+    </div>
+
+    <div id="importModal" class="pro-modal-overlay">
+        <div class="pro-modal-content">
+            <div class="pro-title" id="impTitle">Import Data</div>
+            <div class="pro-desc" id="impDesc" style="text-align:center; margin-bottom:10px;">Paste data here:</div>
+            <textarea id="importText" class="text-area-import" placeholder='Paste here...'></textarea>
+            <button class="pro-btn-buy" id="btnDoImport" onclick="executeImport()" style="background: #007bff;">Load Data</button>
+            <button class="pro-btn-close" id="btnCloseImp" onclick="closeModal('importModal')">Close</button>
         </div>
     </div>
     
@@ -118,12 +161,12 @@
 
     <div class="app-grid">
         <div class="calculator-container">
+            
             <div class="top-controls" style="display:flex; justify-content: space-between; align-items: center; margin-bottom:10px; flex-wrap: wrap; gap:8px;">
                 <div style="flex:1; display:flex; align-items:center; border:2px solid #000; border-radius:6px; padding:6px 10px; min-width:140px; background:#fff;">
                     <span id="labelNameSpan" style="font-size:0.8em; color:#000; font-weight:bold; margin-right:8px;">Name:</span>
                     <input type="text" id="masterLabel" style="border:none; outline:none; font-weight:bold; width:100%; color:#000;" oninput="saveSettings()">
                 </div>
-
                 <div style="display:flex; gap:5px; align-items:center;">
                     <div id="langContainer" style="display:flex; gap:3px; flex-wrap: wrap;"></div>
                 </div>
@@ -131,61 +174,37 @@
 
             <div class="storage-bar">
                 <div class="storage-controls">
-                    <button class="save-btn-main" onclick="triggerProPromo()">💾 <span id="btnSaveMemory">記憶する</span></button>
-                    <button id="editToggle" class="edit-toggle-btn" onclick="triggerProPromo()">Edit ✎</button>
+                    <button class="save-btn-main" onclick="triggerProPromo()">💾 <span id="btnSaveMemory">Save</span></button>
+                    <button id="editToggle" class="edit-toggle-btn" onclick="triggerProPromo()">🗑️</button>
                 </div>
-                <div id="saveList" class="save-list-container"></div>
             </div>
 
-            <h2 id="title" style="font-weight: bold; margin-bottom: 5px; text-align:center;">Simple Sheet FREE</h2>
+            <h2 id="title" style="font-weight: bold; margin-bottom: 15px; text-align:center;">Simple Sheet</h2>
 
             <div style="text-align: center;">
-                <a href="https://play.google.com/store/apps/details?id=com.jetdev.simplesheetpro" target="_blank" class="title-pro-btn" id="btnLinkPro">
-                    🚀 Go to Pro Version
-                </a>
+                <button class="title-pro-btn" id="btnLinkPro" onclick="triggerProPromo()">🚀 Go to Pro Version</button>
             </div>
 
-            <div class="utility-bar" style="display:flex; justify-content: center; gap:4px; margin-bottom:12px; flex-wrap:wrap;">
+            <div class="utility-bar">
+                <button class="util-btn manual" onclick="openManual()" id="btnManual">📖 Manual</button>
                 <button class="util-btn" onclick="clearNumbers()">🧹 <span id="btnClear">Clear</span></button>
                 <button class="util-btn" onclick="triggerProPromo()">📤 <span id="btnExport">Exp</span></button>
-                <button class="util-btn" onclick="triggerProPromo()">📥 <span id="btnImport">Imp</span></button>
-                <button class="util-btn" style="background:#dc3545;" onclick="fullReset()">🔄 <span id="btnReset">Reset</span></button>
+                <button class="util-btn" onclick="openImport()">📥 <span id="btnImport">Imp</span></button>
+                <button class="util-btn reset" onclick="fullReset()">🔄 <span id="btnReset">Reset</span></button>
             </div>
 
-            <div class="mode-toggle">
-                <button id="smartSheetBtn" class="mode-button active" onclick="switchMode('smartSheet')">
-                    <span id="txtModeBase">From Base</span>
-                    <span id="descModeBase" class="mode-desc"></span>
-                </button>
-                <button id="customSimpleBtn" class="mode-button" onclick="switchMode('customSimple')">
-                    <span id="txtModePrev">Flow</span>
-                    <span id="descModePrev" class="mode-desc"></span>
-                </button>
-            </div>
-
-            <div id="smart-sheet-mode">
+            <div id="main-sheet-mode">
                 <div class="master-row">
                     <label id="masterLabelStart" style="font-weight:bold; color:#dc3545;">Base Value</label>
                     <input type="number" id="masterInput" class="master-input" step="any" placeholder="" oninput="updateDisplay()">
                 </div>
-                <div id="rows-container-smart"></div>
+                <div id="rows-container"></div>
                 <div style="text-align: center; margin-top: 15px; display: flex; gap: 8px;">
-                    <button class="mode-button" id="addBtnInd" style="background:#28a745; color:white; flex-direction:row; min-height:auto;" onclick="addRowSmart()">+ Row</button>
-                    <button class="mode-button" id="copyBtnInd" style="background:#007bff; color:white; flex-direction:row; min-height:auto;" onclick="copyPage('smart')">Copy All</button>
+                    <button class="mode-button" id="addBtn" style="background:#28a745; color:white; flex-direction:row; min-height:auto; width:100%; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="addRow()">+ Row</button>
+                    <button class="mode-button" id="copyBtn" style="background:#007bff; color:white; flex-direction:row; min-height:auto; width:100%; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="copyPage()">Copy All</button>
                 </div>
             </div>
 
-            <div id="custom-simple-mode" style="display: none;">
-                <div class="master-row">
-                    <label id="masterLabelStartSimple" style="font-weight:bold; color:#dc3545;">Base Value</label>
-                    <input type="number" id="masterInputSimple" class="master-input" step="any" placeholder="" oninput="updateDisplay()">
-                </div>
-                <div id="rows-container-simple"></div>
-                <div style="text-align: center; margin-top: 15px; display: flex; gap: 8px;">
-                    <button class="mode-button" id="addBtnSeq" style="background:#28a745; color:white; flex-direction:row; min-height:auto;" onclick="addRowSimple()">+ Row</button>
-                    <button class="mode-button" id="copyBtnSeq" style="background:#007bff; color:white; flex-direction:row; min-height:auto;" onclick="copyPage('custom')">Copy All</button>
-                </div>
-            </div>
         </div>
 
         <div id="sideCalc" class="side-calc">
@@ -193,12 +212,12 @@
                 <h3 id="ui-calcTitle" style="margin:0;">Calculator</h3>
                 <button class="mobile-calc-close" onclick="toggleCalc()">×</button>
             </div>
-            <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <div class="calc-display-wrap">
                 <input type="text" id="calcDisplay" class="calc-display" readonly value="0">
-                <button class="calc-btn" style="background:#007bff; width:52px;" onclick="copyCalcResult()">📋</button>
+                <button class="calc-copy-btn-in" onclick="copyCalcResult()">📋</button>
             </div>
             <div class="calc-buttons">
-                <button class="calc-btn clear" onclick="calcClear()">AC</button>
+                <button class="calc-btn clear" onclick="calcInput('AC')">AC</button>
                 <button class="calc-btn op" onclick="calcInput('%')">%</button>
                 <button class="calc-btn op" onclick="calcInput('/')">÷</button>
                 <button class="calc-btn op" onclick="calcInput('*')">×</button>
@@ -215,42 +234,50 @@
                 <button class="calc-btn" onclick="calcInput('3')">3</button>
                 <button class="calc-btn" onclick="calcInput('.')">.</button>
                 <button class="calc-btn" onclick="calcInput('0')">0</button>
-                <button class="calc-btn clear" style="background:#e67e22;" onclick="calcBack()">C</button>
+                <button class="calc-btn clear" style="background:#e67e22;" onclick="calcInput('BS')">⌫</button>
                 <button class="calc-btn equal" onclick="calcResult()">=</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 言語定義 (Web版用) ---
         const languageMap = {
-            en: { title: "Simple Sheet FREE", modeBase: "From Base", descBase: "Fixed: All rows refer to the top base value", modePrev: "Flow", descPrev: "Sequential calc. Choose 🏠 or 🔗 for each row.", masterLabelName: "Name:", masterLabelStart: "Base Value", rowLabel: "Label", copyMsg: "Copied!", btnClear: "Clear", btnExport: "Exp", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", copyAll: "Copy All", calcTitle: "Calculator", btnSave: "Save", btnEdit: "Edit", 
-                  proTitle: "Pro Feature 💎", proDesc: "Save Memory and Export/Import are available in the Pro version.", proBtn: "Upgrade to PRO",
-                  btnProLink: "🚀 Go to Pro Version", btnClose: "Close" },
-            ja: { title: "Simple Sheet FREE", modeBase: "元の値から", descBase: "固定参照：すべての行が一番上の数値を参照します", modePrev: "フロー計算", descPrev: "上から順に計算。各行で 🏠 または 🔗 を選択可能。", masterLabelName: "計算名:", masterLabelStart: "元の数字", rowLabel: "項目名", copyMsg: "コピー完了", btnClear: "クリア", btnExport: "出力", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", addRow: "+ 行追加", copyAll: "全コピー", calcTitle: "電卓", btnSave: "記憶する", btnEdit: "編集", 
-                  proTitle: "Pro版の機能です 💎", proDesc: "データの保存機能や出力/読込はPro版のみの機能です。", proBtn: "Pro版を入手",
-                  btnProLink: "🚀 Pro版へ", btnClose: "閉じる" },
-            zh: { title: "Simple Sheet FREE", modeBase: "从初始值", descBase: "固定引用：每一行都引用顶部的初始值进行计算", modePrev: "流程模式", descPrev: "自上而下计算。每行可选 🏠 或 🔗 模式。", masterLabelName: "名称:", masterLabelStart: "初始值", rowLabel: "项目", copyMsg: "已复制", btnClear: "清除", btnExport: "导出", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", addRow: "+ 添加行", copyAll: "复制全部", calcTitle: "计算器", btnSave: "保存", btnEdit: "编辑", 
-                  proTitle: "Pro版功能 💎", proDesc: "保存、导入/导出功能仅在Pro版中可用。", proBtn: "升级到Pro版",
-                  btnProLink: "🚀 获取Pro版", btnClose: "关闭" },
-            ko: { title: "Simple Sheet FREE", modeBase: "기준값에서", descBase: "고정 참조: 모든 행이 최상단의 기준값을 참조합니다", modePrev: "플로우 모드", descPrev: "순차 계산. 각 행에서 🏠 또는 🔗 선택 가능.", masterLabelName: "이름:", masterLabelStart: "기준값", rowLabel: "항목명", copyMsg: "복사됨", btnClear: "지우기", btnExport: "내보내기", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", addRow: "+ 행 추가", copyAll: "전체 복사", calcTitle: "계산기", btnSave: "저장", btnEdit: "편집", 
-                  proTitle: "Pro 기능 💎", proDesc: "저장 및 내보내기/가져오기는 Pro 버전에서 사용할 수 있습니다.", proBtn: "Pro 버전 받기",
-                  btnProLink: "🚀 Pro 버전", btnClose: "닫기" },
-            es: { title: "Simple Sheet FREE", modeBase: "Desde Base", descBase: "Referencia fija: cada fila usa el valor inicial superior", modePrev: "Flujo", descPrev: "Cálculo en cadena. Elige 🏠 o 🔗 por fila.", masterLabelName: "Nombre:", masterLabelStart: "Valor Base", rowLabel: "Etiqueta", copyMsg: "¡Copiado!", btnClear: "Borrar", btnExport: "Exportar", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", addRow: "+ Fila", copyAll: "Copiar todo", calcTitle: "Calculadora", btnSave: "Guardar", btnEdit: "Editar", 
-                  proTitle: "Función Pro 💎", proDesc: "Guardar y Exportar están disponibles en la versión Pro.", proBtn: "Obtener Pro",
-                  btnProLink: "🚀 Obtener Pro", btnClose: "Cerrar" },
-            fr: { title: "Simple Sheet FREE", modeBase: "Depuis Base", descBase: "Réf. fixe : chaque ligne utilise la valeur du haut", modePrev: "Flux", descPrev: "Calcul en chaîne. Choisissez 🏠 ou 🔗 par ligne.", masterLabelName: "Nom :", masterLabelStart: "Valeur de base", rowLabel: "Libellé", copyMsg: "Copié !", btnClear: "Effacer", btnExport: "Export", btnImport: "Import", btnReset: "RàZ", confirmReset: "Tout réinitialiser ?", addRow: "+ Ligne", copyAll: "Tout copier", calcTitle: "Calculatrice", btnSave: "Sauver", btnEdit: "Modifier", 
-                  proTitle: "Fonctionnalité Pro 💎", proDesc: "Sauvegarder et Exporter sont disponibles dans la version Pro.", proBtn: "Obtenir Pro",
-                  btnProLink: "🚀 Obtenir Pro", btnClose: "Fermer" },
-            pt: { title: "Simple Sheet FREE", modeBase: "Da Base", descBase: "Ref. fixa: cada linha usa o valor inicial do topo", modePrev: "Fluxo", descPrev: "Cálculo em cadeia. Escolha 🏠 ou 🔗 por linha.", masterLabelName: "Nome:", masterLabelStart: "Valor Base", rowLabel: "Rótulo", copyMsg: "Copiado!", btnClear: "Limpar", btnExport: "Exportar", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", addRow: "+ Linha", copyAll: "Copiar tudo", calcTitle: "Calculadora", btnSave: "Salvar", btnEdit: "Editar", 
-                  proTitle: "Recurso Pro 💎", proDesc: "Salvar e Exportar estão disponíveis na versão Pro.", proBtn: "Obter Pro",
-                  btnProLink: "🚀 Obter Pro", btnClose: "Fechar" },
-            de: { title: "Simple Sheet FREE", modeBase: "Vom Basiswert", descBase: "Feste Referenz: Jede Zeile nutzt den oberen Basiswert", modePrev: "Flow", descPrev: "Kettenrechnung. Wählen Sie 🏠 oder 🔗 pro Zeile.", masterLabelName: "Name:", masterLabelStart: "Basiswert", rowLabel: "Label", copyMsg: "Kopiert!", btnClear: "Löschen", btnExport: "Export", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", addRow: "+ Zeile", copyAll: "Alles kopieren", calcTitle: "Rechner", btnSave: "Speichern", btnEdit: "Bearbeiten", 
-                  proTitle: "Pro-Funktion 💎", proDesc: "Speichern und Exportieren sind in der Pro-Version verfügbar.", proBtn: "Pro-Version holen",
-                  btnProLink: "🚀 Pro holen", btnClose: "Schließen" },
-            it: { title: "Simple Sheet FREE", modeBase: "Dalla Base", descBase: "Rif. fisso: ogni riga usa il valore iniziale in alto", modePrev: "Flusso", descPrev: "Calcolo a catena. Scegli 🏠 o 🔗 per riga.", masterLabelName: "Nome:", masterLabelStart: "Valore Base", rowLabel: "Etichetta", copyMsg: "Copiato!", btnClear: "Cancella", btnExport: "Esporta", btnImport: "Importa", btnReset: "Reset", confirmReset: "Ripristinare tutto?", addRow: "+ Riga", copyAll: "Copia tutto", calcTitle: "Calcolatrice", btnSave: "Salva", btnEdit: "Modifica", 
-                  proTitle: "Funzione Pro 💎", proDesc: "Salva e Esporta sono disponibili nella versione Pro.", proBtn: "Ottieni Pro",
-                  btnProLink: "🚀 Ottieni Pro", btnClose: "Chiudi" }
+            en: { title: "Simple Sheet", masterLabelName: "Name:", masterLabelStart: "Base Value", rowLabel: "Label", copyMsg: "Copied!", btnClear: "Clear", btnExport: "Exp", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", copyAll: "Copy All", calcTitle: "Calculator", btnSave: "Save", btnEdit: "Edit", 
+                  proTitle: "Get Pro Version 💎", proDesc: "Save, Export, and PC Access are Pro features.\n\nBuy the app to get the URL & Passcode for the Pro Web version!", proBtn: "Go to App Store",
+                  btnProLink: "🚀 How to get Pro?", btnClose: "Close",
+                  manTitle: "About Simple Sheet", manBody: "More than a calculator, less than Excel.\n\nSimple Sheet organizes calculations as a 'shape' that you can review later.\nWithout complex formulas, just stack arithmetic operations to clarify the flow.\n\n[Free Version]\n- Calculate (+ - × ÷)\n- Copy results\n- Import shared data\n* Data is not saved in the Free version.\n\n[Pro Version]\n- Save data\n- Export data (Share)\n- PC Version Access", manual: "📖 Manual", pcTitle: "PC / Web Version", pcDesc: "Open this URL on your PC:", btnCopy: "Copy URL", msgImport: "Loaded", msgImportError: "Invalid Data", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data" },
+            ja: { title: "Simple Sheet", masterLabelName: "計算名:", masterLabelStart: "元の数字", rowLabel: "項目名", copyMsg: "コピー完了", btnClear: "クリア", btnExport: "出力", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", addRow: "+ 行追加", copyAll: "全コピー", calcTitle: "電卓", btnSave: "記憶する", btnEdit: "編集", 
+                  proTitle: "Pro版のご案内 💎", proDesc: "保存や出力、PC版の利用はPro版の機能です。\n\nアプリを購入すると、Pro版WebサイトのURLとパスコードが手に入ります！", proBtn: "アプリストアへ",
+                  btnProLink: "🚀 Pro版を使うには？", btnClose: "閉じる",
+                  manTitle: "Simple Sheet について", manBody: "電卓以上、Excel未満。\n\nSimple Sheet は、計算を「形」として整理し、後から見返せるシンプルなシートアプリです。\n複雑な数式や表計算を使わず、四則演算を積み重ねるだけで、計算の流れを分かりやすくまとめることができます。\n\n【無料版でできること】\n・基本計算 (+ - × ÷)\n・結果コピー (Excel可)\n・共有データの読込\n\n【Pro版でできること】\n・データの保存\n・データ出力 (共有)\n・PC大画面での利用", manual: "📖 説明書", pcTitle: "PC / Web版", pcDesc: "PCでこのURLを開いてください:", btnCopy: "URLをコピー", msgImport: "読込完了", msgImportError: "データが無効です", impTitle:"データの読込", impDesc:"ここにデータを貼り付けてください:", btnLoad:"読込開始" },
+            zh: { title: "Simple Sheet", masterLabelName: "名称:", masterLabelStart: "初始值", rowLabel: "项目", copyMsg: "已复制", btnClear: "清除", btnExport: "导出", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", addRow: "+ 添加行", copyAll: "复制全部", calcTitle: "计算器", btnSave: "保存", btnEdit: "编辑", 
+                  proTitle: "Pro版功能 💎", proDesc: "购买应用以获取Pro版URL和密码。", proBtn: "去商店",
+                  btnProLink: "🚀 如何获取Pro?", btnClose: "关闭",
+                  manTitle: "应用说明", manBody: "超越计算器，简化Excel。\n\nSimple Sheet 是一款将计算整理为“形状”以便日后查看的简单表格应用。\n\n[免费版]\n- 四则运算\n- 复制结果\n- 导入数据\n\n[Pro版]\n- 保存内容\n- 导出数据", manual: "📖 说明书", pcTitle: "PC版", pcDesc: "请在PC上打开:", btnCopy: "复制URL", msgImport: "已加载", msgImportError: "无效数据", impTitle:"导入数据", impDesc:"请在此处粘贴:", btnLoad:"加载" },
+            ko: { title: "Simple Sheet", masterLabelName: "이름:", masterLabelStart: "기준값", rowLabel: "항목명", copyMsg: "복사됨", btnClear: "지우기", btnExport: "내보내기", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", addRow: "+ 행 추가", copyAll: "전체 복사", calcTitle: "계산기", btnSave: "저장", btnEdit: "편집", 
+                  proTitle: "Pro 기능 💎", proDesc: "Pro 버전을 구매하여 URL과 코드를 받으세요.", proBtn: "스토어로 이동",
+                  btnProLink: "🚀 Pro 버전 받기", btnClose: "닫기",
+                  manTitle: "앱 설명", manBody: "계산기 이상, 엑셀 미만.\n\nSimple Sheet는 계산을 '형태'로 정리하여 나중에 다시 볼 수 있는 심플한 시트 앱입니다.\n\n[무료 버전]\n- 사칙연산 계산\n- 결과 복사\n- 데이터 가져오기\n\n[유료 버전]\n- 내용 저장\n- 데이터 내보내기", manual: "📖 설명서", pcTitle: "PC 버전", pcDesc: "PC에서 열기:", btnCopy: "URL 복사", msgImport: "로드됨", msgImportError: "잘못된 데이터", impTitle:"데이터 가져오기", impDesc:"여기에 붙여넣기:", btnLoad:"로드" },
+            es: { title: "Simple Sheet", masterLabelName: "Nombre:", masterLabelStart: "Valor Base", rowLabel: "Etiqueta", copyMsg: "¡Copiado!", btnClear: "Borrar", btnExport: "Exportar", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", addRow: "+ Fila", copyAll: "Copiar todo", calcTitle: "Calculadora", btnSave: "Guardar", btnEdit: "Editar", 
+                  proTitle: "Función Pro 💎", proDesc: "Compre la app para obtener URL y código Pro.", proBtn: "Ir a la tienda",
+                  btnProLink: "🚀 Obtener Pro", btnClose: "Cerrar",
+                  manTitle: "Manual", manBody: "Más que calculadora, menos que Excel.\n\n[Gratis]\n- Cálculo\n- Copiar\n- Importar\n\n[Pro]\n- Guardar\n- Exportar", manual: "📖 Manual", pcTitle: "Versión PC", pcDesc: "Abrir en PC:", btnCopy: "Copiar URL", msgImport: "Cargado", msgImportError: "Inválido", impTitle:"Importar", impDesc:"Pegar datos aquí:", btnLoad:"Cargar" },
+            fr: { title: "Simple Sheet", masterLabelName: "Nom :", masterLabelStart: "Valeur de base", rowLabel: "Libellé", copyMsg: "Copié !", btnClear: "Effacer", btnExport: "Export", btnImport: "Import", btnReset: "RàZ", confirmReset: "Tout réinitialiser ?", addRow: "+ Ligne", copyAll: "Tout copier", calcTitle: "Calculatrice", btnSave: "Sauver", btnEdit: "Modifier", 
+                  proTitle: "Fonctionnalité Pro 💎", proDesc: "Achetez l'app pour obtenir l'URL Pro.", proBtn: "Aller au store",
+                  btnProLink: "🚀 Obtenir Pro", btnClose: "Fermer",
+                  manTitle: "Manuel", manBody: "Plus qu'une calculette, moins qu'Excel.\n\n[Gratuit]\n- Calcul\n- Copier\n- Importer\n\n[Pro]\n- Sauvegarder\n- Exporter", manual: "📖 Manuel", pcTitle: "Version PC", pcDesc: "Ouvrir sur PC:", btnCopy: "Copier l'URL", msgImport: "Chargé", msgImportError: "Invalide", impTitle:"Importer", impDesc:"Coller ici:", btnLoad:"Charger" },
+            pt: { title: "Simple Sheet", masterLabelName: "Nome:", masterLabelStart: "Valor Base", rowLabel: "Rótulo", copyMsg: "Copiado!", btnClear: "Limpar", btnExport: "Exportar", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", addRow: "+ Linha", copyAll: "Copiar tudo", calcTitle: "Calculadora", btnSave: "Salvar", btnEdit: "Editar", 
+                  proTitle: "Recurso Pro 💎", proDesc: "Compre o app para obter URL Pro.", proBtn: "Ir para loja",
+                  btnProLink: "🚀 Obter Pro", btnClose: "Fechar",
+                  manTitle: "Manual", manBody: "Mais que calculadora, menos que Excel.\n\n[Grátis]\n- Cálculo\n- Copiar\n- Importar\n\n[Pro]\n- Salvar\n- Exportar", manual: "📖 Manual", pcTitle: "Versão PC", pcDesc: "Abrir no PC:", btnCopy: "Copiar URL", msgImport: "Carregado", msgImportError: "Inválido", impTitle:"Importar", impDesc:"Cole aqui:", btnLoad:"Carregar" },
+            de: { title: "Simple Sheet", masterLabelName: "Name:", masterLabelStart: "Basiswert", rowLabel: "Label", copyMsg: "Kopiert!", btnClear: "Löschen", btnExport: "Export", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", addRow: "+ Zeile", copyAll: "Alles kopieren", calcTitle: "Rechner", btnSave: "Speichern", btnEdit: "Bearbeiten", 
+                  proTitle: "Pro-Funktion 💎", proDesc: "Kaufen Sie die App für Pro-Zugang.", proBtn: "Zum Store",
+                  btnProLink: "🚀 Pro holen", btnClose: "Schließen",
+                  manTitle: "Anleitung", manBody: "Mehr als ein Rechner, weniger als Excel.\n\n[Gratis]\n- Rechnen\n- Kopieren\n- Import\n\n[Pro]\n- Speichern\n- Export", manual: "📖 Anleitung", pcTitle: "PC-Version", pcDesc: "Am PC öffnen:", btnCopy: "URL kopieren", msgImport: "Geladen", msgImportError: "Ungültig", impTitle:"Importieren", impDesc:"Hier einfügen:", btnLoad:"Laden" },
+            it: { title: "Simple Sheet", masterLabelName: "Nome:", masterLabelStart: "Valore Base", rowLabel: "Etichetta", copyMsg: "Copiato!", btnClear: "Cancella", btnExport: "Esporta", btnImport: "Importa", btnReset: "Reset", confirmReset: "Ripristinare tutto?", addRow: "+ Riga", copyAll: "Copia tutto", calcTitle: "Calcolatrice", btnSave: "Salva", btnEdit: "Modifica", 
+                  proTitle: "Funzione Pro 💎", proDesc: "Acquista l'app per accesso Pro.", proBtn: "Vai allo store",
+                  btnProLink: "🚀 Ottieni Pro", btnClose: "Chiudi",
+                  manTitle: "Manuale", manBody: "Più di una calcolatrice, meno di Excel.\n\n[Gratis]\n- Calcolo\n- Copia\n- Importa\n\n[Pro]\n- Salva\n- Esporta", manual: "📖 Manuale", pcTitle: "Versione PC", pcDesc: "Apri su PC:", btnCopy: "Copia URL", msgImport: "Caricato", msgImportError: "Non valido", impTitle:"Importa", impDesc:"Incolla qui:", btnLoad:"Carica" }
         };
 
         let currentLanguage = 'en'; 
@@ -266,44 +293,50 @@
                 langCont.appendChild(btn);
             });
 
-            const s = JSON.parse(localStorage.getItem('simpleSheetSettings_free') || '{}');
+            setLanguage(localStorage.getItem('simpleSheetLang_final') || 'en'); 
+            const s = JSON.parse(localStorage.getItem('simpleSheetSettings_final') || '{}');
             applyData(s);
-            setLanguage(localStorage.getItem('simpleSheetLang_free') || 'en'); 
         }
 
         function setLanguage(lang) {
             currentLanguage = lang; 
-            localStorage.setItem('simpleSheetLang_free', lang);
+            localStorage.setItem('simpleSheetLang_final', lang);
             const d = languageMap[lang];
             
             document.getElementById('title').textContent = d.title;
-            document.getElementById('txtModeBase').textContent = d.modeBase;
-            document.getElementById('descModeBase').textContent = d.descBase;
-            document.getElementById('txtModePrev').textContent = d.modePrev;
-            document.getElementById('descModePrev').textContent = d.descPrev;
             document.getElementById('labelNameSpan').textContent = d.masterLabelName;
             document.getElementById('masterLabelStart').textContent = d.masterLabelStart;
-            document.getElementById('masterLabelStartSimple').textContent = d.masterLabelStart;
             document.getElementById('btnClear').textContent = d.btnClear;
             document.getElementById('btnExport').textContent = d.btnExport;
             document.getElementById('btnImport').textContent = d.btnImport;
             document.getElementById('btnReset').textContent = d.btnReset;
-            document.getElementById('addBtnInd').textContent = d.addRow;
-            document.getElementById('addBtnSeq').textContent = d.addRow;
-            document.getElementById('copyBtnInd').textContent = d.copyAll;
-            document.getElementById('copyBtnSeq').textContent = d.copyAll;
+            document.getElementById('addBtn').textContent = d.addRow;
+            document.getElementById('copyBtn').textContent = d.copyAll;
             document.getElementById('ui-calcTitle').textContent = d.calcTitle;
             document.getElementById('btnSaveMemory').textContent = d.btnSave;
-            document.getElementById('editToggle').textContent = d.btnEdit + ' ✎';
+            // Editボタンはアイコンのみ
             
-            // モーダル関連
             document.getElementById('modalTitle').textContent = d.proTitle;
-            document.getElementById('modalDesc').textContent = d.proDesc;
+            document.getElementById('modalDesc').innerText = d.proDesc;
             document.getElementById('modalBtn').textContent = d.proBtn;
+            
             document.getElementById('btnClosePro').textContent = d.btnClose;
-
-            // PRO誘導ボタン
             document.getElementById('btnLinkPro').textContent = d.btnProLink;
+            
+            document.getElementById('manTitle').textContent = d.manTitle;
+            document.getElementById('manBody').innerText = d.manBody;
+            document.getElementById('manClose').textContent = d.btnClose;
+            document.getElementById('btnManual').textContent = d.manual;
+
+            document.getElementById('pcModalTitle').textContent = d.pcTitle;
+            document.getElementById('pcModalDesc').textContent = d.pcDesc;
+            document.getElementById('btnCopyUrl').textContent = d.btnCopy;
+            document.getElementById('btnClosePc').textContent = d.btnClose;
+
+            document.getElementById('impTitle').textContent = d.impTitle;
+            document.getElementById('impDesc').textContent = d.impDesc;
+            document.getElementById('btnDoImport').textContent = d.btnLoad;
+            document.getElementById('btnCloseImp').textContent = d.btnClose;
 
             document.querySelectorAll('.text-label-input').forEach(input => {
                 input.placeholder = d.rowLabel;
@@ -312,165 +345,112 @@
             updateDisplay();
         }
 
-        function triggerProPromo() {
-            document.getElementById('proModal').classList.add('active');
+        function triggerProPromo() { document.getElementById('proModal').classList.add('active'); }
+        function closeProModal() { document.getElementById('proModal').classList.remove('active'); }
+        function triggerPcModal() { document.getElementById('pcModal').classList.add('active'); }
+        function closePcModal() { document.getElementById('pcModal').classList.remove('active'); }
+        function copyPcUrl() {
+            const urlInput = document.getElementById('pcUrlInput');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(urlInput.value);
+            showMsg(languageMap[currentLanguage].copyMsg);
         }
-        function closeProModal() {
-            document.getElementById('proModal').classList.remove('active');
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openManual() { document.getElementById('manualModal').classList.add('active'); }
+        function openImport() { 
+            document.getElementById('importText').value = "";
+            document.getElementById('importModal').classList.add('active'); 
         }
 
         function formatNum(num) {
-            return num.toLocaleString(undefined, { 
-                minimumFractionDigits: 0, 
-                maximumFractionDigits: 3 
-            });
+            return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
         }
 
         function updateDisplay() {
             const mVal = parseFloat(document.getElementById('masterInput').value) || 0;
-            document.querySelectorAll('#rows-container-smart .row').forEach(r => {
+            let chain = mVal;
+            document.querySelectorAll('#rows-container .row').forEach(r => {
                 const id = r.dataset.id;
-                const op = document.getElementById('smart-op-'+id).textContent;
+                const op = document.getElementById('op-'+id).textContent;
                 const mult = parseFloat(r.querySelector('.multiplier-input').value) || 0;
                 const pct = r.querySelector('.percent-toggle').classList.contains('active');
-                
-                let mod = pct ? mVal * (mult / 100) : mult;
-                let res = 0;
-                if(op === '+') res = mVal + mod;
-                else if(op === '-') res = mVal - mod;
-                else if(op === '×') res = pct ? mVal * (mult / 100) : mVal * mult;
-                else if(op === '÷') res = mult !== 0 ? mVal / mult : 0;
-                
-                r.querySelector('.result-text').textContent = formatNum(res);
-            });
-
-            const mValS = parseFloat(document.getElementById('masterInputSimple').value) || 0;
-            let chain = mValS;
-            document.querySelectorAll('#rows-container-simple .row').forEach(r => {
-                const id = r.dataset.id;
-                const op = document.getElementById('simple-op-'+id).textContent;
-                const mult = parseFloat(r.querySelector('.multiplier-input').value) || 0;
-                const pct = r.querySelector('.percent-toggle').classList.contains('active');
-                const isChain = document.getElementById('simple-base-'+id).classList.contains('chain');
-                
-                const base = isChain ? chain : mValS;
+                const isChain = document.getElementById('base-'+id).classList.contains('chain');
+                const base = isChain ? chain : mVal;
                 let mod = pct ? base * (mult / 100) : mult;
                 let res = 0;
-                
                 if(op === '+') res = base + mod;
                 else if(op === '-') res = base - mod;
                 else if(op === '×') res = pct ? base * (mult / 100) : base * mult;
                 else if(op === '÷') res = mult !== 0 ? base / mult : 0;
-                
                 r.querySelector('.result-text').textContent = formatNum(res);
-                chain = res; 
+                chain = res;
             });
-            
             saveSettings();
-        }
-
-        function switchMode(m) {
-            document.getElementById('smart-sheet-mode').style.display = m==='smartSheet' ? 'block' : 'none'; 
-            document.getElementById('custom-simple-mode').style.display = m==='customSimple' ? 'block' : 'none'; 
-            document.getElementById('smartSheetBtn').classList.toggle('active', m==='smartSheet'); 
-            document.getElementById('customSimpleBtn').classList.toggle('active', m==='customSimple'); 
-            updateDisplay(); 
         }
 
         function getScreenData() {
             return {
                 masterLabel: document.getElementById('masterLabel').value,
                 masterInput: document.getElementById('masterInput').value,
-                masterInputSimple: document.getElementById('masterInputSimple').value,
-                lastMode: document.getElementById('smartSheetBtn').classList.contains('active') ? 'smartSheet' : 'customSimple',
-                smartRows: Array.from(document.querySelectorAll('#rows-container-smart .row')).map(r => ({
+                rows: Array.from(document.querySelectorAll('#rows-container .row')).map(r => ({
                     id: r.dataset.id, 
                     label: r.querySelector('.text-label-input').value, 
                     multiplier: r.querySelector('.multiplier-input').value, 
-                    operator: document.getElementById('smart-op-'+r.dataset.id).textContent, 
-                    isPercentActive: r.querySelector('.percent-toggle').classList.contains('active')
-                })),
-                simpleRows: Array.from(document.querySelectorAll('#rows-container-simple .row')).map(r => ({
-                    id: r.dataset.id, 
-                    label: r.querySelector('.text-label-input').value, 
-                    multiplier: r.querySelector('.multiplier-input').value, 
-                    operator: document.getElementById('simple-op-'+r.dataset.id).textContent, 
+                    operator: document.getElementById('op-'+r.dataset.id).textContent, 
                     isPercentActive: r.querySelector('.percent-toggle').classList.contains('active'), 
-                    baseMode: document.getElementById('simple-base-'+r.dataset.id).classList.contains('chain') ? 'chain' : 'master'
+                    baseMode: document.getElementById('base-'+r.dataset.id).classList.contains('chain') ? 'chain' : 'master'
                 }))
             };
         }
 
         function applyData(s) {
-            if(!s || !s.smartRows) { 
-                if(!document.querySelector('.row')) { addRowSmart(); addRowSimple(); }
-                return; 
+            if(!s) return;
+            document.getElementById('masterLabel').value = s.masterLabel || s.name || '';
+            document.getElementById('masterInput').value = s.masterInput || s.base || '';
+            document.getElementById('rows-container').innerHTML = '';
+            
+            let rowsToLoad = s.rows || s.simpleRows;
+            if(rowsToLoad) { 
+                rowsToLoad.forEach(r => {
+                    let rowData = {
+                        label: r.label || r.n || '',
+                        multiplier: (r.multiplier !== undefined) ? r.multiplier : (r.p !== undefined ? r.p : ''),
+                        operator: r.operator || r.o || '+',
+                        isPercentActive: (r.isPercentActive !== undefined) ? r.isPercentActive : (r.pct || false),
+                        baseMode: (r.baseMode) ? r.baseMode : ((r.c === true) ? 'chain' : 'master')
+                    };
+                    addRow(rowData);
+                }); 
+            } else { 
+                addRow(); 
             }
-            document.getElementById('masterLabel').value = s.masterLabel || '';
-            document.getElementById('masterInput').value = s.masterInput || '';
-            document.getElementById('masterInputSimple').value = s.masterInputSimple || '';
-            
-            document.getElementById('rows-container-smart').innerHTML = '';
-            document.getElementById('rows-container-simple').innerHTML = '';
-            s.smartRows.forEach(r => addRowSmart(r));
-            if(s.simpleRows) s.simpleRows.forEach(r => addRowSimple(r));
-            
-            switchMode(s.lastMode || 'smartSheet');
             updateDisplay();
         }
 
         function saveSettings(){ 
-            localStorage.setItem('simpleSheetSettings_free', JSON.stringify(getScreenData())); 
+            localStorage.setItem('simpleSheetSettings_final', JSON.stringify(getScreenData())); 
         }
 
-        function addRowSmart(s=null) {
+        function addRow(s=null) {
             const id = s ? s.id : Math.random().toString(36).substr(2, 5);
             const ph = languageMap[currentLanguage].rowLabel;
             const div = document.createElement('div'); 
             div.className = 'row'; 
             div.dataset.id = id;
+            const isChain = s ? s.baseMode==='chain' : true; 
             const val = s ? s.multiplier : '';
-            div.innerHTML = `
-                <input type="text" class="text-label-input" placeholder="${ph}" value="${s?s.label:''}" oninput="saveSettings()">
-                <div class="calc-area">
-                    <div class="operator-group">
-                        <div class="operator-control" onclick="changeOp('${id}','smart',1)">▲</div>
-                        <div class="operator-display" id="smart-op-${id}">${s?s.operator:'+'}</div>
-                        <div class="operator-control" onclick="changeOp('${id}','smart',-1)">▼</div>
-                    </div>
-                    <input type="number" step="any" class="multiplier-input" value="${val}" placeholder="" oninput="updateDisplay()">
-                    <div class="percent-toggle ${s&&s.isPercentActive?'active':''}" onclick="this.classList.toggle('active');updateDisplay()">%</div>
-                </div>
-                <div class="result-area">
-                    <div class="result-text">0</div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="action-btn" onclick="copyRowVal(this)">📋</button>
-                        <button class="action-btn" onclick="this.closest('.row').remove();updateDisplay()">🗑️</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('rows-container-smart').appendChild(div); 
-            updateDisplay();
-        }
 
-        function addRowSimple(s=null) {
-            const id = s ? s.id : Math.random().toString(36).substr(2, 5);
-            const ph = languageMap[currentLanguage].rowLabel;
-            const div = document.createElement('div'); 
-            div.className = 'row'; 
-            div.dataset.id = id;
-            const isChain = s ? s.baseMode==='chain' : true;
-            const val = s ? s.multiplier : '';
             div.innerHTML = `
                 <input type="text" class="text-label-input" placeholder="${ph}" value="${s?s.label:''}" oninput="saveSettings()">
                 <div class="calc-area">
-                    <div id="simple-base-${id}" class="base-toggle ${isChain?'chain':''}" onclick="this.classList.toggle('chain');this.textContent=this.classList.contains('chain')?'🔗':'🏠';updateDisplay()">
+                    <div id="base-${id}" class="base-toggle ${isChain?'chain':''}" onclick="this.classList.toggle('chain');this.textContent=this.classList.contains('chain')?'🔗':'🏠';updateDisplay()">
                         ${isChain?'🔗':'🏠'}
                     </div>
                     <div class="operator-group">
-                        <div class="operator-control" onclick="changeOp('${id}','simple',1)">▲</div>
-                        <div class="operator-display" id="simple-op-${id}">${s?s.operator:'+'}</div>
-                        <div class="operator-control" onclick="changeOp('${id}','simple',-1)">▼</div>
+                        <div class="operator-control" onclick="changeOp('${id}',1)">▲</div>
+                        <div class="operator-display" id="op-${id}">${s?s.operator:'+'}</div>
+                        <div class="operator-control" onclick="changeOp('${id}',-1)">▼</div>
                     </div>
                     <input type="number" step="any" class="multiplier-input" value="${val}" placeholder="" oninput="updateDisplay()">
                     <div class="percent-toggle ${s&&s.isPercentActive?'active':''}" onclick="this.classList.toggle('active');updateDisplay()">%</div>
@@ -483,13 +463,13 @@
                     </div>
                 </div>
             `;
-            document.getElementById('rows-container-simple').appendChild(div); 
+            document.getElementById('rows-container').appendChild(div); 
             updateDisplay();
         }
 
-        function changeOp(id, m, d) { 
+        function changeOp(id, d) { 
             const ops = ['+','-','×','÷']; 
-            const el = document.getElementById(m+'-op-'+id); 
+            const el = document.getElementById('op-'+id); 
             el.textContent = ops[(ops.indexOf(el.textContent) + d + 4) % 4]; 
             updateDisplay(); 
         }
@@ -499,30 +479,104 @@
             showMsg(languageMap[currentLanguage].copyMsg); 
         }
 
-        function copyPage(m) { 
+        function copyPage() { 
             let t = `【${document.getElementById('masterLabel').value || 'Sheet'}】\n`;
-            const container = m === 'smart' ? '#rows-container-smart' : '#rows-container-simple';
-            document.querySelectorAll(container + ' .row').forEach(r => { 
+            document.querySelectorAll('#rows-container .row').forEach(r => { 
                 t += `${r.querySelector('.text-label-input').value || '-'}\t${r.querySelector('.result-text').textContent.replace(/,/g,'')}\n`; 
             });
             navigator.clipboard.writeText(t); 
             showMsg(languageMap[currentLanguage].copyMsg);
         }
 
+        // 手動インポート実行
+        function executeImport() {
+            const text = document.getElementById('importText').value;
+            if(!text) return;
+            try {
+                // 1. JSON (Pro形式) トライ
+                const j = JSON.parse(text);
+                applyData(j);
+                showMsg(languageMap[currentLanguage].msgImport);
+                closeModal('importModal');
+            } catch(e) {
+                // 2. テキスト (Copy All形式) トライ
+                if(tryParseText(text)) {
+                    showMsg(languageMap[currentLanguage].msgImport);
+                    closeModal('importModal');
+                } else {
+                    showMsg(languageMap[currentLanguage].msgImportError);
+                }
+            }
+        }
+
+        function tryParseText(text) {
+            const lines = text.trim().split(/\r?\n/);
+            if (lines.length < 1) return false;
+            let name = "", base = 0, rows = [], startRowIdx = 0;
+
+            // 1行目が数値かタイトルか
+            if (!isNaN(parseFloat(lines[0])) && lines[0].trim().match(/^[\d\.-]+$/)) {
+                base = parseFloat(lines[0]);
+                startRowIdx = 1;
+            } else {
+                name = lines[0].trim().replace(/^【|】$/g, '');
+                if (lines.length > 1 && !isNaN(parseFloat(lines[1]))) {
+                    base = parseFloat(lines[1]);
+                    startRowIdx = 2;
+                } else {
+                    startRowIdx = 1;
+                }
+            }
+
+            for (let i = startRowIdx; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                // タブ、または2つ以上の連続スペース、または行末の数値の前にあるスペースで分割
+                let parts = line.split(/\t+/);
+                if (parts.length < 2) parts = line.split(/\s{2,}/);
+                
+                // それでもダメなら、行の最後にある数値を抽出
+                if (parts.length < 2) {
+                    const match = line.match(/^(.*)\s+([\d,\.-]+)$/);
+                    if (match) {
+                        parts = [match[1], match[2]];
+                    }
+                }
+
+                if (parts.length >= 2) {
+                    const val = parseFloat(parts[parts.length-1].replace(/,/g, '')) || 0;
+                    // ラベル結合
+                    const label = parts.slice(0, parts.length-1).join(" ").trim();
+                    rows.push({
+                        label: label,
+                        multiplier: val,
+                        operator: '+',
+                        baseMode: 'chain',
+                        isPercentActive: false
+                    });
+                }
+            }
+
+            if (rows.length === 0 && base === 0 && !name) return false;
+
+            document.getElementById('masterLabel').value = name;
+            document.getElementById('masterInput').value = base;
+            document.getElementById('rows-container').innerHTML = "";
+            rows.forEach(r => addRow(r));
+            updateDisplay();
+            return true;
+        }
+
         function calcInput(v) { 
-            if(currentCalc === "0" && v !== ".") currentCalc = v; 
-            else currentCalc += v; 
+            if(v === 'AC') { currentCalc = "0"; }
+            else if(v === 'BS') { currentCalc = currentCalc.length > 1 ? currentCalc.slice(0, -1) : "0"; }
+            else {
+                if(currentCalc === "0" && v !== ".") currentCalc = v; 
+                else currentCalc += v; 
+            }
             document.getElementById('calcDisplay').value = currentCalc; 
         }
-        function calcClear() { 
-            currentCalc = "0"; 
-            document.getElementById('calcDisplay').value = "0"; 
-        }
-        function calcBack() { 
-            if(currentCalc.length > 1) { currentCalc = currentCalc.slice(0, -1); } 
-            else { currentCalc = "0"; } 
-            document.getElementById('calcDisplay').value = currentCalc; 
-        }
+        
         function calcResult() { 
             try { 
                 let expression = currentCalc.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100');
@@ -543,13 +597,12 @@
 
         function clearNumbers() { 
             document.getElementById('masterInput').value = ""; 
-            document.getElementById('masterInputSimple').value = ""; 
             document.querySelectorAll('.multiplier-input').forEach(i => i.value = ""); 
             updateDisplay(); 
         }
         function fullReset() { 
             if(confirm(languageMap[currentLanguage].confirmReset)) { 
-                localStorage.clear(); 
+                localStorage.removeItem('simpleSheetSettings_final'); 
                 location.reload(); 
             } 
         }
@@ -562,7 +615,6 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                if(navigator.serviceWorker.controller) return;
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
             });
         }
