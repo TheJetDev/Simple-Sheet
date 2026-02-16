@@ -625,23 +625,30 @@
         function executeImport() {
             let text = document.getElementById('importText').value.trim();
             if(!text) return;
-            
-            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
+            // 1. 全角文字の記号を半角に強制変換（スマホ対策）
+            text = text.replace(/[｛｝［］]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+                       .replace(/[“”]/g, '"');
+
+            // 2. 最初に出現する { と、最後に出現する } を探し出す
             const firstBrace = text.indexOf('{');
             const lastBrace = text.lastIndexOf('}');
+
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 try {
-                    const potentialJson = text.substring(firstBrace, lastBrace + 1);
-                    const j = JSON.parse(potentialJson);
+                    // カッコに囲まれた部分だけを抽出して解析
+                    const cleanJson = text.substring(firstBrace, lastBrace + 1);
+                    const j = JSON.parse(cleanJson);
                     applyData(j);
                     showMsg(languageMap[currentLanguage].msgLoad);
                     closeModal('importModal');
                     return;
-                } catch(e) {}
+                } catch(e) {
+                    console.error("JSON Parse Error:", e);
+                }
             }
 
-            // テキスト解析
+            // 3. もしJSONとして失敗した場合は、従来のテキスト解析（tryParseText）を試す
             if(tryParseText(text)){ 
                 showMsg(languageMap[currentLanguage].msgLoad);
                 closeModal('importModal');
@@ -759,3 +766,4 @@
     </script>
 </body>
 </html>
+
