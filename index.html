@@ -621,28 +621,51 @@
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (自動抽出) ---
+        // --- Import (浄化機能付き・最新版) ---
         function executeImport() {
-            let text = document.getElementById('importText').value.trim();
-            if(!text) return;
+            let rawText = document.getElementById('importText').value;
+            if(!rawText) return;
             
-            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            // 1. 強力な浄化処理
+            // Redditの余計なバックスラッシュ、見えないスペース、変な引用符をすべて掃除
+            let cleanText = rawText
+                .replace(/\\/g, "")       // すべてのバックスラッシュを消去
+                .replace(/\u00A0/g, " ")  // 特殊なスペースを置換
+                .replace(/\u200B/g, "")   // ゼロ幅スペースを消去
+                .replace(/\u200E/g, "")   // 制御文字を消去
+                .replace(/[“”]/g, '"')   // スマートクォートを普通の引用符に
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
 
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
+            const marker = "▼ DATA CODE ▼";
+            if (cleanText.includes(marker)) {
+                cleanText = cleanText.split(marker)[1].trim();
+            }
+
+            // 2. JSON部分を特定して抽出
+            const firstBrace = cleanText.indexOf('{');
+            const lastBrace = cleanText.lastIndexOf('}');
+            
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+                let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
+                
+                // Redditが勝手にいれた物理的な改行を消して1行に修復
+                jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
+
                 try {
-                    const potentialJson = text.substring(firstBrace, lastBrace + 1);
-                    const j = JSON.parse(potentialJson);
+                    const j = JSON.parse(jsonPart);
                     applyData(j);
                     showMsg(languageMap[currentLanguage].msgLoad);
                     closeModal('importModal');
                     return;
-                } catch(e) {}
+                } catch(e) {
+                    console.error("JSON Parse Error:", e);
+                }
             }
 
-            // テキスト解析
-            if(tryParseText(text)){ 
+            // 3. JSONがダメならテキスト解析へ挑戦
+            if(tryParseText(rawText)){ 
                 showMsg(languageMap[currentLanguage].msgLoad);
                 closeModal('importModal');
             } else {
@@ -651,9 +674,16 @@
         }
 
         function tryParseText(text) {
-             const lines = text.trim().split(/\r?\n/);
+            // テキスト解析前にも念のため基本的な浄化を行う
+            const purifiedText = text
+                .replace(/\u00A0/g, " ")
+                .replace(/\u200B/g, "")
+                .replace(/\u200E/g, "");
+
+            const lines = purifiedText.trim().split(/\r?\n/);
             if (lines.length < 1) return false;
             let name = ""; let base = 0; let rows = []; let startRowIdx = 0;
+            
             const titleMatch = lines[0].match(/【(.*?)】/);
             if (titleMatch) { name = titleMatch[1]; startRowIdx = 1; } 
             else if (!isNaN(parseFloat(lines[0])) && lines[0].trim().match(/^[\d\.-]+$/)) { base = parseFloat(lines[0]); startRowIdx = 1; } 
@@ -672,7 +702,7 @@
 
             for (let i = startRowIdx; i < lines.length; i++) {
                 const line = lines[i].trim(); if (!line) continue;
-                if (line.includes("[Memo]") || line.includes("▼ DATA CODE")) { readingMemo = true; continue; }
+                if (line.includes("[Memo]") || line.includes("[Memo ]") || line.includes("▼ DATA CODE")) { readingMemo = true; continue; }
                 if (readingMemo) { 
                     if(line.includes("▼ DATA CODE")) break; 
                     if (!line.startsWith("Link\t")) {
@@ -759,3 +789,4 @@
     </script>
 </body>
 </html>
+
