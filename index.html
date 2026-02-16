@@ -630,14 +630,20 @@
             text = text.replace(/[｛｝［］]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
                        .replace(/[“”]/g, '"');
 
-            // 2. 最初に出現する { と、最後に出現する } を探し出す
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
+            // 2. 「▼ DATA CODE ▼」という目印があれば、それ以降だけを切り出す（超重要）
+            let searchArea = text;
+            const marker = "▼ DATA CODE ▼";
+            if (text.includes(marker)) {
+                searchArea = text.substring(text.indexOf(marker) + marker.length);
+            }
+
+            // 3. 切り出した範囲の中から { と } を探す
+            const firstBrace = searchArea.indexOf('{');
+            const lastBrace = searchArea.lastIndexOf('}');
 
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 try {
-                    // カッコに囲まれた部分だけを抽出して解析
-                    const cleanJson = text.substring(firstBrace, lastBrace + 1);
+                    const cleanJson = searchArea.substring(firstBrace, lastBrace + 1);
                     const j = JSON.parse(cleanJson);
                     applyData(j);
                     showMsg(languageMap[currentLanguage].msgLoad);
@@ -648,7 +654,7 @@
                 }
             }
 
-            // 3. もしJSONとして失敗した場合は、従来のテキスト解析（tryParseText）を試す
+            // 4. それでもダメなら従来のテキスト解析
             if(tryParseText(text)){ 
                 showMsg(languageMap[currentLanguage].msgLoad);
                 closeModal('importModal');
@@ -766,4 +772,5 @@
     </script>
 </body>
 </html>
+
 
