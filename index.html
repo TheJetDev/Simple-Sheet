@@ -621,7 +621,7 @@
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (改行・URL死守版) ---
+        // --- Import (全環境対応・最終版) ---
         function executeImport() {
             let rawText = document.getElementById('importText').value;
             if(!rawText) return;
@@ -648,15 +648,11 @@
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
                 
-                // 【ここがポイント！】
-                // 改行コード(\\n)を一時的に避難(§N§)させてから、Redditが勝手につけたバックスラッシュを掃除
-                jsonPart = jsonPart.replace(/\\\\/g, "§§"); 
-                jsonPart = jsonPart.replace(/\\n/g, "§N§"); 
-                jsonPart = jsonPart.replace(/\\/g, "");     
-                jsonPart = jsonPart.replace(/§§/g, "\\");   
-                jsonPart = jsonPart.replace(/§N§/g, "\\n"); // 改行を安全に復活させる
+                // --- 【最強のバックスラッシュ処理】 ---
+                // Reddit特有のゴミ（ \] や \" ）だけを消し、PCやメールの正しい改行(\n)は守ります
+                jsonPart = jsonPart.replace(/\\([^n\\])/g, '$1');
 
-                // JSONを壊す物理的な改行（Enter）だけを消して1行にする
+                // JSONを壊す物理的な改行（Enterキー）を消して1行に修復
                 jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
 
                 try {
@@ -678,6 +674,7 @@
                 showMsg(languageMap[currentLanguage].msgError);
             }
         }
+
         function tryParseText(text) {
             // テキスト解析前にも念のため基本的な浄化を行う
             const purifiedText = text
@@ -734,7 +731,8 @@
             document.getElementById('memoArea').value = memoContent.trim();
             updateMemoLinks();
             document.getElementById('rows-container').innerHTML = "";
-            rows.forEach(r => addRow(r)); updateDisplay();
+            rows.forEach(r => addRow(r)); 
+            updateDisplay();
             return true;
         }
 
@@ -794,5 +792,6 @@
     </script>
 </body>
 </html>
+
 
 
