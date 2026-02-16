@@ -1,5 +1,5 @@
 // sw.js (Free Version)
-const CACHE_NAME = 'simple-sheet-v10';
+const CACHE_NAME = 'simple-sheet-v11';
 const urlsToCache = [
   './',
   'index.html',
@@ -27,5 +27,6 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(caches.match(event.request).then(res => res || fetch(event.request)));
 });
+
 
 
