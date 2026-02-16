@@ -643,6 +643,7 @@
 
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 try {
+                    // カッコに囲まれた部分だけを抽出して解析
                     const cleanJson = searchArea.substring(firstBrace, lastBrace + 1);
                     const j = JSON.parse(cleanJson);
                     applyData(j);
@@ -772,6 +773,3 @@
     </script>
 </body>
 </html>
-
-
-
