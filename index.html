@@ -621,19 +621,17 @@
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (浄化機能付き・最新版) ---
+        // --- Import (改行・URL死守版) ---
         function executeImport() {
             let rawText = document.getElementById('importText').value;
             if(!rawText) return;
             
-            // 1. 強力な浄化処理
-            // Redditの余計なバックスラッシュ、見えないスペース、変な引用符をすべて掃除
+            // 1. 基本的な浄化（見えない文字や変な引用符を修正）
             let cleanText = rawText
-                .replace(/\\/g, "")       // すべてのバックスラッシュを消去
-                .replace(/\u00A0/g, " ")  // 特殊なスペースを置換
-                .replace(/\u200B/g, "")   // ゼロ幅スペースを消去
-                .replace(/\u200E/g, "")   // 制御文字を消去
-                .replace(/[“”]/g, '"')   // スマートクォートを普通の引用符に
+                .replace(/\u00A0/g, " ")
+                .replace(/\u200B/g, "")
+                .replace(/\u200E/g, "")
+                .replace(/[“”]/g, '"')
                 .replace(/```json/g, "")
                 .replace(/```/g, "")
                 .trim();
@@ -650,7 +648,15 @@
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
                 
-                // Redditが勝手にいれた物理的な改行を消して1行に修復
+                // 【ここがポイント！】
+                // 改行コード(\\n)を一時的に避難(§N§)させてから、Redditが勝手につけたバックスラッシュを掃除
+                jsonPart = jsonPart.replace(/\\\\/g, "§§"); 
+                jsonPart = jsonPart.replace(/\\n/g, "§N§"); 
+                jsonPart = jsonPart.replace(/\\/g, "");     
+                jsonPart = jsonPart.replace(/§§/g, "\\");   
+                jsonPart = jsonPart.replace(/§N§/g, "\\n"); // 改行を安全に復活させる
+
+                // JSONを壊す物理的な改行（Enter）だけを消して1行にする
                 jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
 
                 try {
@@ -672,7 +678,6 @@
                 showMsg(languageMap[currentLanguage].msgError);
             }
         }
-
         function tryParseText(text) {
             // テキスト解析前にも念のため基本的な浄化を行う
             const purifiedText = text
@@ -789,4 +794,5 @@
     </script>
 </body>
 </html>
+
 
