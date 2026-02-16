@@ -134,7 +134,9 @@
         <div class="pro-modal-content" style="max-width:350px;">
             <div class="pro-title" id="impTitle">Import Data</div>
             <div class="pro-desc" id="impDesc" style="text-align:center; margin-bottom:10px;">Paste data here:</div>
-            <textarea id="importText" class="text-area-import" placeholder='Paste code here...'></textarea>
+            
+            <textarea id="importText" class="text-area-import" placeholder='Paste code here...' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+            
             <button class="pro-btn-buy" id="btnDoImport" onclick="executeImport()" style="background: #007bff;">Load Data</button>
             <button class="pro-btn-close" id="btnCloseImp" onclick="closeModal('importModal')">Close</button>
         </div>
@@ -241,36 +243,6 @@
             fr: "À propos de Simple Sheet\n\nMieux organisé qu'une calculatrice,\nMoins complexe qu'un tableur.\n\nSimple Sheet sert à organiser et conserver vos calculs.\n\nElle se compose de quatre calculs de base : Additionner, Soustraire, Multiplier et Diviser.\nLe flux de calcul reste tel quel.\n\n【Changement de mode】\n🏠 Valeur Base : Utilise la valeur supérieure.\n🔗 Chaîne : Utilise le résultat précédent.\n\n【Tout Copier (Tableau)】\nCopie le résultat sous forme de tableau.\n(Code JSON non inclus)\n\n【Exporter (Données)】\nCopie les données de calcul.\nÀ coller dans Simple Sheet pour partager.\n\n【Importer】\nCollez le texte dans l'écran d'importation.\n\nMême s'il y a des salutations ou d'autres textes mélangés, il extraira automatiquement uniquement les données.\n\n【Limitations des fonctionnalités】\nL'enregistrement et la rédaction de notes sont des fonctionnalités de la version Pro.",
             ru: "О Simple Sheet\n\nУдобнее, чем калькулятор,\nПроще, чем таблица.\n\nSimple Sheet — приложение для расчетов.\n\nСложение, вычитание, умножение, деление.\nХод вычислений сохраняется.\n\n【Режимы】\n🏠 База: Использует верхнее значение.\n🔗 Цепь: Использует результат предыдущей строки.\n\n【Копировать все (Таблица)】\nКопирует результат как таблицу.\n(Без JSON кода)\n\n【Экспорт (Данные)】\nКопирует данные вычислений.\nВставьте в Simple Sheet для обмена.\n\n【Импорт】\nВставьте текст в экран импорта.\n\nДаже если в тексте есть приветствия или другой текст, приложение автоматически извлечет только данные.\n\n【Ограничения функций】\nСохранение и запись заметок — это функции Pro-версии.",
             de: "Über Simple Sheet\n\nÜbersichtlicher als ein Taschenrechner,\nEinfacher als eine Tabelle.\n\nSimple Sheet organisiert Berechnungen.\n\nAddieren, Subtrahieren, Multiplizieren, Dividieren.\nDer Weg bleibt erhalten.\n\n【Moduswechsel】\n🏠 Basiswert: Verwendet den oberen Wert.\n🔗 Kette: Verwendet das vorherige Ergebnis.\n\n【Alles Kopieren (Tabelle)】\nKopiert das Ergebnis als Tabelle.\n(Ohne JSON-Code)\n\n【Exportieren (Daten)】\nKopiert die Berechnungsdaten.\nZum Teilen in Simple Sheet einfügen.\n\n【Importieren】\nText in den Import-Bildschirm einfügen.\n\nSelbst wenn Begrüßungen oder anderer Text enthalten sind, werden automatisch nur die Daten extrahiert.\n\n【Funktionseinschränkungen】\nDas Speichern und das Schreiben von Notizen sind Funktionen der Pro-Version."
-        };
-
-        const languageMap = {
-            en: { title: "Simple Sheet", masterLabelName: "Title", masterLabelStart: "🏠 Base", rowLabel: "Item Name", copyMsg: "Copied!", btnClear: "Clear", btnExport: "Exp", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", copyAll: "📋 Copy All", calcTitle: "Calculator", btnSave: "💾 Save", btnDone: "Done",
-                  manual: "📖 Manual", btnClose: "Close", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgExported: "Data Code Copied!", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
-                  proTitle: "Get Pro Version 💎", proDesc: "Save, Export, and PC Access are Pro features.\n\nBuy the app to get the URL & Passcode for the Pro Web version!", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?"},
-            ja: { title: "Simple Sheet", masterLabelName: "タイトル", masterLabelStart: "🏠 元の数字", rowLabel: "項目名", copyMsg: "コピー完了", btnClear: "クリア", btnExport: "出力", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", addRow: "+ 行を追加", copyAll: "📋 オールコピー", calcTitle: "電卓", btnSave: "💾 記憶", btnDone: "完了",
-                  manual: "📖 説明書", btnClose: "閉じる", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgExported: "データコードをコピーしました", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
-                  proTitle: "Pro版のご案内 💎", proDesc: "保存や出力、PC版の利用はPro版の機能です。\n\nアプリを購入すると、Pro版WebサイトのURLとパスコードが手に入ります！", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？"},
-            zh: { title: "Simple Sheet", masterLabelName: "标题", masterLabelStart: "🏠 初始值", rowLabel: "项目名称", copyMsg: "已复制", btnClear: "清除", btnExport: "导出", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", addRow: "+ 添加行", copyAll: "📋 复制", calcTitle: "计算器", btnSave: "💾 保存", btnDone: "完成",
-                  manual: "📖 说明书", btnClose: "关闭", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgExported: "代码已复制", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
-                  proTitle: "Pro版功能 💎", proDesc: "购买应用以获取Pro版URL和密码。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?"},
-            ko: { title: "Simple Sheet", masterLabelName: "제목", masterLabelStart: "🏠 기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnClear: "지우기", btnExport: "내보내기", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", addRow: "+ 행 추가", copyAll: "📋 복사", calcTitle: "계산기", btnSave: "💾 저장", btnDone: "완료",
-                  manual: "📖 설명서", btnClose: "닫기", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgExported: "코드 복사됨", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
-                  proTitle: "Pro 기능 💎", proDesc: "Pro 버전을 구매하여 URL과 코드를 받으세요.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기"},
-            es: { title: "Simple Sheet", masterLabelName: "Título", masterLabelStart: "🏠 Valor Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnClear: "Borrar", btnExport: "Exp", btnImport: "Imp", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", addRow: "+ Fila", copyAll: "📋 Copiar", calcTitle: "Calculadora", btnSave: "💾 Guardar", btnDone: "Listo",
-                  manual: "📖 Manual", btnClose: "Cerrar", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgExported: "¡Código copiado!", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
-                  proTitle: "Función Pro 💎", proDesc: "Compre la app para obtener URL y código Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro"},
-            pt: { title: "Simple Sheet", masterLabelName: "Título", masterLabelStart: "🏠 Valor Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnClear: "Limpar", btnExport: "Exp", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reiniciar tudo?", addRow: "+ Linha", copyAll: "📋 Copiar", calcTitle: "Calculadora", btnSave: "💾 Salvar", btnDone: "Concluir",
-                  manual: "📖 Manual", btnClose: "Fechar", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgExported: "Código copiado!", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
-                  proTitle: "Recurso Pro 💎", proDesc: "Compre o app para obter URL Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro"},
-            fr: { title: "Simple Sheet", masterLabelName: "Titre", masterLabelStart: "🏠 Valeur Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnClear: "Effacer", btnExport: "Exp", btnImport: "Imp", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", addRow: "+ Ligne", copyAll: "📋 Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.", btnDone: "OK",
-                  manual: "📖 Manuel", btnClose: "Fermer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgExported: "Code copié !", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
-                  proTitle: "Fonctionnalité Pro 💎", proDesc: "Achetez l'app pour obtenir l'URL Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro"},
-            ru: { title: "Simple Sheet", masterLabelName: "Название", masterLabelStart: "🏠 База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnClear: "Сброс", btnExport: "Эксп", btnImport: "Имп", btnReset: "Сброс", confirmReset: "Сбросить всё?", addRow: "+ Ряд", copyAll: "📋 Копия", calcTitle: "Калькулятор", btnSave: "💾 Сохр.", btnDone: "Готово",
-                  manual: "📖 Инфо", btnClose: "Закрыть", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgExported: "Код скопирован!", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
-                  proTitle: "Pro Версия 💎", proDesc: "Купите приложение для доступа к Pro URL.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro"},
-            de: { title: "Simple Sheet", masterLabelName: "Titel", masterLabelStart: "🏠 Basiswert", rowLabel: "Elementname", copyMsg: "Kopiert!", btnClear: "Löschen", btnExport: "Exp", btnImport: "Imp", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", addRow: "+ Zeile", copyAll: "📋 Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern", btnDone: "Fertig",
-                  manual: "📖 Handbuch", btnClose: "Schließen", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgExported: "Code kopiert!", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
-                  proTitle: "Pro-Funktion 💎", proDesc: "Kaufen Sie die App für Pro-Zugang.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen"}
         };
 
         let currentLanguage = 'en'; 
@@ -630,7 +602,7 @@
             text = text.replace(/[｛｝［］]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
                        .replace(/[“”]/g, '"');
 
-            // 2. 「▼ DATA CODE ▼」という目印があれば、それ以降だけを切り出す（超重要）
+            // 2. 「▼ DATA CODE ▼」という目印があれば、それ以降だけを切り出す
             let searchArea = text;
             const marker = "▼ DATA CODE ▼";
             if (text.includes(marker)) {
@@ -643,7 +615,6 @@
 
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 try {
-                    // カッコに囲まれた部分だけを抽出して解析
                     const cleanJson = searchArea.substring(firstBrace, lastBrace + 1);
                     const j = JSON.parse(cleanJson);
                     applyData(j);
@@ -651,6 +622,8 @@
                     closeModal('importModal');
                     return;
                 } catch(e) {
+                    // ★エラーの真犯人をスマホ画面に表示させます★
+                    alert("【エラー調査用】\n原因: " + e.message + "\n\n▼実際に読み込んだ文字▼\n" + searchArea.substring(firstBrace, lastBrace + 1));
                     console.error("JSON Parse Error:", e);
                 }
             }
