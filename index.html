@@ -626,7 +626,7 @@
             let rawText = document.getElementById('importText').value;
             if(!rawText) return;
             
-            // 1. 基本的な浄化（見えない文字や変な引用符を修正）
+            // 1. 基本的な浄化
             let cleanText = rawText
                 .replace(/\u00A0/g, " ")
                 .replace(/\u200B/g, "")
@@ -648,12 +648,15 @@
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
                 
-                // --- 【最強のバックスラッシュ処理】 ---
-                // Reddit特有のゴミ（ \] や \" ）だけを消し、PCやメールの正しい改行(\n)は守ります
+                // --- 【最強のURL分離 & ゴミ掃除ロジック】 ---
+                // ① 改行記号 \n を一旦逃がす
+                jsonPart = jsonPart.replace(/\\n/g, "§N§");
+                // ② Redditの邪魔な \ だけを消す
                 jsonPart = jsonPart.replace(/\\([^n\\])/g, '$1');
-
-                // JSONを壊す物理的な改行（Enterキー）を消して1行に修復
+                // ③ 物理的な改行を消す
                 jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
+                // ④ 逃がした改行記号を戻す
+                jsonPart = jsonPart.replace(/§N§/g, "\\n");
 
                 try {
                     const j = JSON.parse(jsonPart);
@@ -792,6 +795,7 @@
     </script>
 </body>
 </html>
+
 
 
 
