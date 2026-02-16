@@ -134,9 +134,7 @@
         <div class="pro-modal-content" style="max-width:350px;">
             <div class="pro-title" id="impTitle">Import Data</div>
             <div class="pro-desc" id="impDesc" style="text-align:center; margin-bottom:10px;">Paste data here:</div>
-            
-            <textarea id="importText" class="text-area-import" placeholder='Paste code here...' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-            
+            <textarea id="importText" class="text-area-import" placeholder='Paste code here...'></textarea>
             <button class="pro-btn-buy" id="btnDoImport" onclick="executeImport()" style="background: #007bff;">Load Data</button>
             <button class="pro-btn-close" id="btnCloseImp" onclick="closeModal('importModal')">Close</button>
         </div>
@@ -308,6 +306,7 @@
             const d = languageMap[lang];
             
             document.getElementById('title').textContent = d.title;
+            // 変更点: ラベルspan削除に伴い、プレースホルダーに設定
             document.getElementById('masterLabel').placeholder = d.masterLabelName;
             
             document.getElementById('masterLabelStart').textContent = d.masterLabelStart;
@@ -392,6 +391,7 @@
             saveSettings();
         }
 
+        // --- メモ帳のURLリンク機能 ---
         function updateMemoLinks() {
             const text = document.getElementById('memoArea').value;
             const linkDiv = document.getElementById('memoLinks');
@@ -540,15 +540,19 @@
             return res;
         }
 
+        // --- Copy Logic (HTML + Text) ---
         async function copyPage() { 
             const title = document.getElementById('masterLabel').value || 'Sheet';
             const baseLabel = languageMap[currentLanguage].masterLabelStart;
             const baseVal = document.getElementById('masterInput').value;
             
+            // Text Format
             let t = `【${escapeForExcel(title)}】\n`;
             t += `${baseLabel}\t\t${baseVal}\n`;
             
+            // HTML Format
             let h = `<table>`;
+            // タイトル: 中央寄せ・背景グレー・太字なし
             h += `<tr><td colspan="3" style="background-color:#EFEFEF; text-align:center; font-size:14pt;">【${escapeHtml(title)}】</td></tr>`;
             h += `<tr><td>${escapeHtml(baseLabel)}</td><td></td><td>${escapeHtml(baseVal)}</td></tr>`;
 
@@ -563,6 +567,7 @@
             const memo = document.getElementById('memoArea').value;
             if(memo) {
                 t += `\n[Memo]\n${escapeForExcel(memo)}`;
+                // メモ: 薄い黄色背景・自動改行挿入・折り返しスタイル
                 const htmlMemo = insertAutoBreaks(memo);
                 h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word;"><b>[ Memo ]</b><br>${htmlMemo}</td></tr>`;
 
@@ -589,6 +594,7 @@
                 await navigator.clipboard.write([item]);
                 showMsg(languageMap[currentLanguage].copyMsg);
             } catch (err) {
+                // Fallback
                 navigator.clipboard.writeText(t);
                 showMsg(languageMap[currentLanguage].copyMsg + " (Text)");
             }
@@ -619,41 +625,23 @@
         function executeImport() {
             let text = document.getElementById('importText').value.trim();
             if(!text) return;
+            
+            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
-            // 1. 全角文字の記号を半角に強制変換（スマホ対策）
-            text = text.replace(/[｛｝［］]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-                       .replace(/[“”]/g, '"');
-
-            // 2. 「▼ DATA CODE ▼」という目印があれば、それ以降だけを切り出す
-            let searchArea = text;
-            const marker = "▼ DATA CODE ▼";
-            if (text.includes(marker)) {
-                searchArea = text.substring(text.indexOf(marker) + marker.length);
-            }
-
-            // 3. 切り出した範囲の中から { と } を探す
-            const firstBrace = searchArea.indexOf('{');
-            const lastBrace = searchArea.lastIndexOf('}');
-
+            const firstBrace = text.indexOf('{');
+            const lastBrace = text.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
                 try {
-                    let cleanJson = searchArea.substring(firstBrace, lastBrace + 1);
-                    
-                    // ★追加：Redditなどのコピー対策！勝手についたバックスラッシュ(\)を消し去る
-                    cleanJson = cleanJson.replace(/\\([\[\]{}])/g, '$1');
-                    
-                    const j = JSON.parse(cleanJson);
+                    const potentialJson = text.substring(firstBrace, lastBrace + 1);
+                    const j = JSON.parse(potentialJson);
                     applyData(j);
                     showMsg(languageMap[currentLanguage].msgLoad);
                     closeModal('importModal');
                     return;
-                } catch(e) {
-                    alert("【エラー調査用】\n原因: " + e.message + "\n\n▼実際に読み込んだ文字▼\n" + searchArea.substring(firstBrace, lastBrace + 1));
-                    console.error("JSON Parse Error:", e);
-                }
+                } catch(e) {}
             }
 
-            // 4. それでもダメなら従来のテキスト解析
+            // テキスト解析
             if(tryParseText(text)){ 
                 showMsg(languageMap[currentLanguage].msgLoad);
                 closeModal('importModal');
