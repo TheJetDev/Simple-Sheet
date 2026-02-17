@@ -287,17 +287,85 @@
                 langCont.appendChild(btn);
             });
 
-            let saved = localStorage.getItem('simpleSheetLang_final');
-            if(!saved) {
-                const browserLang = navigator.language.slice(0, 2);
-                if(languageMap[browserLang]) saved = browserLang;
-                else saved = 'en';
+            // ★修正1：先にデータを復元して、画面を作ってしまう！
+            const savedDataStr = localStorage.getItem('simpleSheetSettings_final');
+            if (savedDataStr) {
+                try {
+                    const parsed = JSON.parse(savedDataStr);
+                    // 万が一空っぽの {} が保存されていた場合は空行を作る
+                    if (Object.keys(parsed).length === 0) {
+                        addRow();
+                    } else {
+                        applyData(parsed);
+                    }
+                } catch(e) { 
+                    console.error("Restore error", e); 
+                    addRow(); // エラー時は空の行を作る
+                }
+            } else {
+                addRow(); // 初めて開いた時だけ空の行を作る
             }
-            setLanguage(saved); 
+
+            // ★修正2：データが復元された「後」に、言語を設定する！
+            let savedLang = localStorage.getItem('simpleSheetLang_final');
+            if(!savedLang) {
+                const browserLang = navigator.language.slice(0, 2);
+                if(languageMap[browserLang]) savedLang = browserLang;
+                else savedLang = 'en';
+            }
+            setLanguage(savedLang); 
             
-            const s = JSON.parse(localStorage.getItem('simpleSheetSettings_final') || '{}');
-            applyData(s);
             updateMemoLinks();
+        }
+
+        // ★修正3：空欄が「0」に変わってしまうのを防ぐ
+        function getScreenData() {
+            return {
+                n: document.getElementById('masterLabel').value, 
+                b: document.getElementById('masterInput').value, 
+                m: document.getElementById('memoArea').value, 
+                r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => {
+                    let rawVal = r.querySelector('.multiplier-input').value;
+                    return {
+                        n: r.querySelector('.text-label-input').value, 
+                        p: rawVal === "" ? "" : (parseFloat(rawVal) || 0), // 空欄は空欄のまま記憶する
+                        o: r.querySelector('.operator-display').textContent.trim(), 
+                        pct: r.querySelector('.percent-toggle').classList.contains('active'), 
+                        c: r.querySelector('.base-toggle').classList.contains('chain') 
+                    };
+                })
+            };
+        }
+
+        // ★修正4：リロード時の重複を防ぐための画面リセット処理を追加
+        function applyData(s) {
+            if(!s) return;
+            document.getElementById('masterLabel').value = s.n || s.name || s.masterLabel || '';
+            document.getElementById('masterInput').value = s.b || s.base || s.masterInput || '';
+            document.getElementById('memoArea').value = s.m || s.memo || '';
+            updateMemoLinks();
+            
+            // 既存の行を一旦すべて削除して真っ新にする
+            document.getElementById('rows-container').innerHTML = '';
+            
+            let rowsToLoad = s.r || s.rows || s.simpleRows;
+            if(rowsToLoad && rowsToLoad.length > 0) { 
+                rowsToLoad.forEach(r => {
+                    let op = r.o || r.operator || '+';
+                    let label = r.n || r.label || '';
+                    let val = (r.p !== undefined) ? r.p : (r.multiplier !== undefined ? r.multiplier : '');
+                    let isPct = (r.pct !== undefined) ? r.pct : (r.isPercentActive || false);
+                    let isChain = (r.c !== undefined) ? r.c : (r.baseMode === 'chain');
+                    
+                    let rowData = {
+                        label: label, multiplier: val, operator: op, isPercentActive: isPct, baseMode: isChain ? 'chain' : 'master'
+                    };
+                    addRow(rowData);
+                }); 
+            } else { 
+                addRow(); 
+            }
+            updateDisplay();
         }
 
         function setLanguage(lang) {
@@ -795,6 +863,7 @@
     </script>
 </body>
 </html>
+
 
 
 
