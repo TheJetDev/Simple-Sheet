@@ -1,5 +1,5 @@
 // sw.js (Free Version)
-const CACHE_NAME = 'simple-sheet-v2.7'; // 
+const CACHE_NAME = 'simple-sheet-v2.7.2'; // 
 
 const urlsToCache = [
   'index.html',
@@ -63,3 +63,4 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
