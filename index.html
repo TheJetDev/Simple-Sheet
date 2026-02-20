@@ -83,7 +83,7 @@
         .calc-btn.op { background: #f39c12; }
         .calc-btn.equal { background: #27ae60; grid-column: span 2; }
         .calc-btn.clear { background: #c0392b; }
-        #saveMessage { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 12px 25px; border-radius: 25px; opacity: 0; transition: opacity 0.3s; z-index: 2000; pointer-events: none; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        #saveMessage { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 12px 25px; border-radius: 25px; opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .calc-toggle-btn { display: none; position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 50%; background: #333; color: white; border: none; font-size: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1001; cursor: pointer; }
         .mobile-calc-close { display: none; background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; }
         .pro-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3000; justify-content: center; align-items: center; padding: 20px; }
@@ -309,7 +309,7 @@
             // ★修正2：データが復元された「後」に、言語を設定する！
             let savedLang = localStorage.getItem('simpleSheetLang_final');
             if(!savedLang) {
-                const browserLang = navigator.language.slice(0, 2);
+                const browserLang = (navigator.language || 'en').slice(0, 2);
                 if(languageMap[browserLang]) savedLang = browserLang;
                 else savedLang = 'en';
             }
@@ -349,7 +349,7 @@
             document.getElementById('rows-container').innerHTML = '';
             
             let rowsToLoad = s.r || s.rows || s.simpleRows;
-            if(rowsToLoad && rowsToLoad.length > 0) { 
+if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
                 rowsToLoad.forEach(r => {
                     let op = r.o || r.operator || '+';
                     let label = r.n || r.label || '';
@@ -689,60 +689,64 @@
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (全環境対応・最終版) ---
+        // --- Import (本番用・最終版) ---
         function executeImport() {
             let rawText = document.getElementById('importText').value;
-            if(!rawText) return;
-            
-            // 1. 基本的な浄化
-            let cleanText = rawText
-                .replace(/\u00A0/g, " ")
-                .replace(/\u200B/g, "")
-                .replace(/\u200E/g, "")
-                .replace(/[“”]/g, '"')
-                .replace(/```json/g, "")
-                .replace(/```/g, "")
-                .trim();
-
-            const marker = "▼ DATA CODE ▼";
-            if (cleanText.includes(marker)) {
-                cleanText = cleanText.split(marker)[1].trim();
+            if(!rawText) {
+                showMsg("Paste data / データを貼り付けてください"); 
+                return;
             }
 
-            // 2. JSON部分を特定して抽出
-            const firstBrace = cleanText.indexOf('{');
-            const lastBrace = cleanText.lastIndexOf('}');
-            
-            if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
-                let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
-                
-                // --- 【最強のURL分離 & ゴミ掃除ロジック】 ---
-                // ① 改行記号 \n を一旦逃がす
-                jsonPart = jsonPart.replace(/\\n/g, "§N§");
-                // ② Redditの邪魔な \ だけを消す
-                jsonPart = jsonPart.replace(/\\([^n\\])/g, '$1');
-                // ③ 物理的な改行を消す
-                jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
-                // ④ 逃がした改行記号を戻す
-                jsonPart = jsonPart.replace(/§N§/g, "\\n");
+            try {
+                // 1. 基本的な浄化 ＋ BOM・スマホ不可視文字の徹底除去
+                let cleanText = rawText
+                    .replace(/[\u00A0\u200B\u200E\uFEFF\u202A-\u202E]/g, "")
+                    .replace(/[“”]/g, '"')
+                    .replace(/```json/g, "")
+                    .replace(/```/g, "")
+                    .trim();
 
-                try {
-                    const j = JSON.parse(jsonPart);
-                    applyData(j);
+                const marker = "▼ DATA CODE ▼";
+                if (cleanText.includes(marker)) {
+                    cleanText = cleanText.split(marker)[1].trim();
+                }
+
+                // 2. JSON部分を特定して抽出
+                const firstBrace = cleanText.indexOf('{');
+                const lastBrace = cleanText.lastIndexOf('}');
+                
+                if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+                    let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
+
+                    // 物理改行の削除のみ（JSONの破壊を防ぐためバックスラッシュ除去はしない）
+                    jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
+
+                    try {
+                        const j = JSON.parse(jsonPart);
+                        applyData(j);
+                        showMsg(languageMap[currentLanguage].msgLoad);
+                        closeModal('importModal');
+                        return; // 成功したらここで終了
+                    } catch(jsonErr) {
+                        console.warn("JSON Parse Error:", jsonErr);
+                        // JSONで失敗しても下のテキスト解析へ進む
+                    }
+                }
+
+                // 3. JSONがダメならテキスト解析へ挑戦
+                if(tryParseText(cleanText)){ 
                     showMsg(languageMap[currentLanguage].msgLoad);
                     closeModal('importModal');
-                    return;
-                } catch(e) {
-                    console.error("JSON Parse Error:", e);
+                } else {
+                    showMsg(languageMap[currentLanguage].msgError); // エラーメッセージ
+                    closeModal('importModal'); // 確実に画面を閉じる
                 }
-            }
 
-            // 3. JSONがダメならテキスト解析へ挑戦
-            if(tryParseText(rawText)){ 
-                showMsg(languageMap[currentLanguage].msgLoad);
+            } catch(err) {
+                // 万が一、予期せぬエラーが起きた場合の最終防衛ライン
+                console.error("FATAL IMPORT ERROR:", err);
+                showMsg("System Error");
                 closeModal('importModal');
-            } else {
-                showMsg(languageMap[currentLanguage].msgError);
             }
         }
 
@@ -863,6 +867,7 @@
     </script>
 </body>
 </html>
+
 
 
 
