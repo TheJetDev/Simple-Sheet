@@ -711,17 +711,12 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
                     cleanText = cleanText.split(marker)[1].trim();
                 }
 
-                // 2. JSON部分を特定して抽出
-                const firstBrace = cleanText.indexOf('{');
-                const lastBrace = cleanText.lastIndexOf('}');
-                
-                if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
-                    let jsonPart = cleanText.substring(firstBrace, lastBrace + 1);
-
-                    // 物理改行の削除のみ（JSONの破壊を防ぐためバックスラッシュ除去はしない）
-                    jsonPart = jsonPart.replace(/\n/g, "").replace(/\r/g, "");
-
+                // 2. JSON部分を特定して抽出（★修正箇所：改行に強くなりました）
+                const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    let jsonPart = jsonMatch[0];
                     try {
+                        // ★改行を消さずにそのままパースする（これが一番大事！）
                         const j = JSON.parse(jsonPart);
                         applyData(j);
                         showMsg(languageMap[currentLanguage].msgLoad);
@@ -867,6 +862,7 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
     </script>
 </body>
 </html>
+
 
 
 
