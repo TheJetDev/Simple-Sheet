@@ -1,5 +1,5 @@
 // sw.js (Free Version)
-const CACHE_NAME = 'simple-sheet-v2.6'; // 
+const CACHE_NAME = 'simple-sheet-v2.7'; // 
 
 const urlsToCache = [
   'index.html',
@@ -27,31 +27,36 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // ① HTML（画面遷移）は常にネット優先、ダメならキャッシュ（ルートURL対応済み）
+  // ① HTML（画面遷移）はNetwork First
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(new Request('index.html'), clone);
-          });
+          // ★改善: 正常なレスポンス(200 OK等)の時だけキャッシュを更新し、将来の拡張のために event.request をキーにする
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, clone);
+            });
+          }
           return response;
         })
-        .catch(() => caches.match(event.request)
-          .then(res => res || caches.match('index.html')))
+        .catch(() => caches.match(event.request).then(res => res || caches.match('index.html')))
     );
   } 
-  // ② 画像やマニフェストは「Stale-While-Revalidate」（キャッシュを返しつつ裏で最新化）
+  // ② 画像やマニフェストは Stale-While-Revalidate
   else {
     event.respondWith(
       caches.match(event.request).then(cached => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, networkResponse.clone());
-          });
+          // ★改善: 正常な通信の時だけ裏側でキャッシュを上書きする
+          if (networkResponse && networkResponse.ok) {
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, networkResponse.clone());
+            });
+          }
           return networkResponse;
-        }).catch(() => {}); // オフライン時のエラーを無視
+        }); // ★不要なcatchを削除
         
         return cached || fetchPromise;
       })
