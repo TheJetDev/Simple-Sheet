@@ -483,13 +483,16 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
                 n: document.getElementById('masterLabel').value, 
                 b: document.getElementById('masterInput').value, 
                 m: document.getElementById('memoArea').value, 
-                r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => ({
-                    n: r.querySelector('.text-label-input').value, 
-                    p: parseFloat(r.querySelector('.multiplier-input').value) || 0,
-                    o: r.querySelector('.operator-display').textContent.trim(), 
-                    pct: r.querySelector('.percent-toggle').classList.contains('active'), 
-                    c: r.querySelector('.base-toggle').classList.contains('chain') 
-                }))
+                r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => {
+                    let rawVal = r.querySelector('.multiplier-input').value;
+                    return {
+                        n: r.querySelector('.text-label-input').value, 
+                        p: rawVal === "" ? "" : (parseFloat(rawVal) || 0), // ★空欄は空欄のまま記憶する
+                        o: r.querySelector('.operator-display').textContent.trim(), 
+                        pct: r.querySelector('.percent-toggle').classList.contains('active'), 
+                        c: r.querySelector('.base-toggle').classList.contains('chain') 
+                    };
+                })
             };
         }
 
@@ -499,10 +502,13 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
             document.getElementById('masterInput').value = s.b || s.base || s.masterInput || '';
             document.getElementById('memoArea').value = s.m || s.memo || '';
             updateMemoLinks();
+            
+            // ★既存の行を一旦すべて削除して真っ新にする
             document.getElementById('rows-container').innerHTML = '';
             
             let rowsToLoad = s.r || s.rows || s.simpleRows;
-            if(rowsToLoad) { 
+            // ★データが壊れていてもクラッシュしない防御策
+            if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) { 
                 rowsToLoad.forEach(r => {
                     let op = r.o || r.operator || '+';
                     let label = r.n || r.label || '';
@@ -515,7 +521,9 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
                     };
                     addRow(rowData);
                 }); 
-            } else { addRow(); }
+            } else { 
+                addRow(); 
+            }
             updateDisplay();
         }
 
@@ -879,6 +887,7 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
     </script>
 </body>
 </html>
+
 
 
 
