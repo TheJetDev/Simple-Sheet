@@ -689,7 +689,7 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (本番用・最終版) ---
+        // --- Import (スマホ・全環境対応の究極版) ---
         function executeImport() {
             let rawText = document.getElementById('importText').value;
             if(!rawText) {
@@ -698,11 +698,12 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
             }
 
             try {
-                // 1. 基本的な浄化 ＋ BOM・スマホ不可視文字の徹底除去
+                // 1. 基本的な浄化（スマホの不可視ゴミを徹底排除）
                 let cleanText = rawText
-                    .replace(/[\u00A0\u200B\u200E\uFEFF\u202A-\u202E]/g, "")
+                    .replace(/\u00A0/g, " ")
+                    .replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "")
                     .replace(/[“”]/g, '"')
-                    .replace(/```json/g, "")
+                    .replace(/```json/gi, "")
                     .replace(/```/g, "")
                     .trim();
 
@@ -711,34 +712,50 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
                     cleanText = cleanText.split(marker)[1].trim();
                 }
 
-                // 2. JSON部分を特定して抽出（★修正箇所：改行に強くなりました）
+                // 2. JSON部分を特定して抽出
                 const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                     let jsonPart = jsonMatch[0];
-                    try {
-                        // ★改行を消さずにそのままパースする（これが一番大事！）
-                        const j = JSON.parse(jsonPart);
+                    
+                    // --- 【最強のゴミ掃除＆スマホ修復ロジック】 ---
+                    // ① Reddit特有の邪魔なブラケットだけをピンポイントで直す
+                    jsonPart = jsonPart.replace(/\\\[/g, "[").replace(/\\\]/g, "]");
+                    
+                    // ② 【あなたのアイデア】本来の改行コード(\n)を保護する
+                    jsonPart = jsonPart.replace(/\\n/g, "§N§");
+                    
+                    // ③ JSONを破壊する「スマホ特有の物理的な改行」をスペースに変換
+                    jsonPart = jsonPart.replace(/\r?\n/g, " ");
+                    
+                    // ④ 保護した改行コードを戻す
+                    jsonPart = jsonPart.replace(/§N§/g, "\\n");
+
+                    // ⑤ 【新機能】スマホでのコピペ漏れ（ケツ切れ）を自動修復してパース！
+                    const tryParse = (str) => {
+                        try { return JSON.parse(str); } catch(e) { return null; }
+                    };
+                    
+                    // そのまま → } を足す → ]} を足す → }]} を足す （執念の4段構え）
+                    let j = tryParse(jsonPart) || tryParse(jsonPart + '}') || tryParse(jsonPart + ']}') || tryParse(jsonPart + '}]}');
+                    
+                    if (j) {
                         applyData(j);
                         showMsg(languageMap[currentLanguage].msgLoad);
                         closeModal('importModal');
                         return; // 成功したらここで終了
-                    } catch(jsonErr) {
-                        console.warn("JSON Parse Error:", jsonErr);
-                        // JSONで失敗しても下のテキスト解析へ進む
                     }
                 }
 
                 // 3. JSONがダメならテキスト解析へ挑戦
-                if(tryParseText(cleanText)){ 
+                if(tryParseText(rawText)){ 
                     showMsg(languageMap[currentLanguage].msgLoad);
                     closeModal('importModal');
                 } else {
                     showMsg(languageMap[currentLanguage].msgError); // エラーメッセージ
-                    closeModal('importModal'); // 確実に画面を閉じる
+                    closeModal('importModal'); 
                 }
 
             } catch(err) {
-                // 万が一、予期せぬエラーが起きた場合の最終防衛ライン
                 console.error("FATAL IMPORT ERROR:", err);
                 showMsg("System Error");
                 closeModal('importModal');
@@ -862,6 +879,7 @@ if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
     </script>
 </body>
 </html>
+
 
 
 
