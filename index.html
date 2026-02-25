@@ -119,17 +119,16 @@
             <div id="modalTitle" class="pro-title">Pro Feature</div>
             <div id="modalDesc" class="pro-desc" style="text-align:center;"></div>
             <button class="pro-btn-buy" id="modalBtn" onclick="window.open('https://play.google.com/store/apps/details?id=jetdev.simplesheet', '_blank')">Upgrade to Pro</button>
-            <button class="pro-btn-buy" onclick="closeModal('proModal'); openUnlockModal();" style="background:#1a237e;">I have the Passcode</button>
+            <button class="pro-btn-buy" onclick="closeModal('proModal'); openUnlockModal();" style="background:#1a237e;">Passcode</button>
             <button class="pro-btn-close" id="btnClosePro" onclick="closeModal('proModal')">Close</button>
         </div>
     </div>
 
     <div id="unlockModal" class="pro-modal-overlay">
         <div class="pro-modal-content" style="max-width:350px;">
-            <div class="pro-title">Unlock Pro</div>
-            <div class="pro-desc" style="text-align:center; margin-bottom:15px;">Enter the passcode found in the Simple Sheet Android App.</div>
-            <input type="password" id="unlockPasscode" placeholder="****" style="font-size:20px; padding:10px; width:80%; text-align:center; margin-bottom:15px; border:2px solid #ccc; border-radius:6px; color:#000;">
-            <button class="pro-btn-buy" onclick="checkPasscode()" style="background: #28a745;">Unlock Now</button>
+            <div class="pro-title" style="margin-bottom:20px;">PRO Passcode</div>
+            <input type="password" id="unlockPasscode" placeholder="Passcode" style="font-size:20px; padding:10px; width:80%; text-align:center; margin-bottom:15px; border:2px solid #ccc; border-radius:6px; color:#000;">
+            <button class="pro-btn-buy" onclick="checkPasscode()" style="background: #28a745;">Unlock</button>
             <button class="pro-btn-close" onclick="closeModal('unlockModal')">Cancel</button>
         </div>
     </div>
@@ -869,4 +868,5 @@
     </script>
 </body>
 </html>
+
 
