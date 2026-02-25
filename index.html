@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#e0e0e0">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="favicon-96x96.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
         /* --- 基本スタイル --- */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px; background-color: #f0f2f5; margin: 0; box-sizing: border-box; font-size: 16px; color: #000; }
@@ -287,26 +288,43 @@
                 langCont.appendChild(btn);
             });
 
-            // ★修正1：先にデータを復元して、画面を作ってしまう！
-            const savedDataStr = localStorage.getItem('simpleSheetSettings_final');
-            if (savedDataStr) {
+            // ▼ 追加：URLから飛んできたデータをキャッチする！ ▼
+            const params = new URLSearchParams(window.location.search);
+            const urlData = params.get('data');
+
+            if (urlData && urlData.startsWith('SS1v1:')) {
                 try {
-                    const parsed = JSON.parse(savedDataStr);
-                    // 万が一空っぽの {} が保存されていた場合は空行を作る
-                    if (Object.keys(parsed).length === 0) {
-                        addRow();
-                    } else {
-                        applyData(parsed);
+                    const compressed = urlData.substring(6);
+                    const decompressed = LZString.decompressFromBase64(compressed);
+                    if (decompressed) {
+                        applyData(JSON.parse(decompressed));
+                        window.history.replaceState({}, document.title, window.location.pathname);
                     }
-                } catch(e) { 
-                    console.error("Restore error", e); 
-                    addRow(); // エラー時は空の行を作る
+                } catch(e) {
+                    console.error("URL Load Error", e);
+                    addRow();
                 }
             } else {
-                addRow(); // 初めて開いた時だけ空の行を作る
-            }
+                // ▼ URLがない場合は前回の続きを復元（ノーマル版のキー） ▼
+                const savedDataStr = localStorage.getItem('simpleSheetSettings_final');
+                if (savedDataStr) {
+                    try {
+                        const parsed = JSON.parse(savedDataStr);
+                        if (Object.keys(parsed).length === 0) {
+                            addRow();
+                        } else {
+                            applyData(parsed);
+                        }
+                    } catch(e) { 
+                        console.error("Restore error", e); 
+                        addRow();
+                    }
+                } else {
+                    addRow(); 
+                }
+            } // ★else閉じ
 
-            // ★修正2：データが復元された「後」に、言語を設定する！
+            // ▼ 言語設定など
             let savedLang = localStorage.getItem('simpleSheetLang_final');
             if(!savedLang) {
                 const browserLang = (navigator.language || 'en').slice(0, 2);
@@ -634,7 +652,14 @@
         }
 
         function exportData() { 
-            const data = JSON.stringify(getScreenData());
+            const data = getScreenData();
+            const jsonCode = JSON.stringify(data);
+            
+            const compressed = LZString.compressToBase64(jsonCode);
+            const ss1Code = "SS1v1:" + compressed;
+            
+            const shareUrl = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
+
             let output = "";
             const title = data.n || "Simple Sheet";
             output += `【 ${title} 】\n\n`;
@@ -648,8 +673,9 @@
                 output += "\n";
             }
             
-            output += "▼ DATA CODE ▼\n";
-            output += data;
+            output += "▼ リンクを開いてデータを取り込む ▼\n";
+            output += shareUrl + "\n";
+            
             navigator.clipboard.writeText(output); 
             showMsg(languageMap[currentLanguage].msgExported); 
         }
@@ -844,3 +870,4 @@
     </script>
 </body>
 </html>
+
