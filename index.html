@@ -11,13 +11,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
         /* --- 基本スタイル --- */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px; background-color: #f0f2f5; margin: 0; box-sizing: border-box; font-size: 16px; color: #000; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px; background-color: #f0f2f5; margin: 0; box-sizing: border-box; font-size: 16px; color: #000; transition: background-color 0.5s; }
+        body.pro-mode { background-color: #FFF8E1; } /* Proアンロック時の背景色 */
         * { box-sizing: border-box; }
         .app-grid { display: flex; gap: 12px; max-width: 1600px; margin: 0 auto; align-items: flex-start; }
         
-        /* メモ帳エリア (Free版: 背景色を薄い黄色に変更) */
+        /* メモ帳エリア */
         .memo-container { flex: 1; min-width: 250px; background-color: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1); height: 85vh; position: sticky; top: 8px; display: flex; flex-direction: column; }
-        .memo-area { flex: 1; width: 100%; resize: none; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-size: 0.95em; line-height: 1.5; outline: none; background: #FFF2CC; color: #555; margin-bottom: 10px; cursor: not-allowed; }
+        .memo-area { flex: 1; width: 100%; resize: none; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-size: 0.95em; line-height: 1.5; outline: none; background: #FFF2CC; color: #333; margin-bottom: 10px; }
         .memo-links { max-height: 150px; overflow-y: auto; padding: 5px; background: #f9f9f9; border-radius: 6px; border: 1px dashed #ccc; }
         .memo-link-item { display: block; padding: 6px; margin-bottom: 4px; background: #e3f2fd; color: #0d47a1; text-decoration: none; border-radius: 4px; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .memo-link-item:hover { background: #bbdefb; }
@@ -66,11 +67,20 @@
         .action-btn { border: none; background: none; cursor: pointer; font-size: 1.8em; opacity: 0.7; padding: 5px; }
         .master-row { padding: 12px; margin-bottom: 12px; border: 3px solid #dc3545; border-radius: 10px; background-color: #fff; display: flex; align-items: center; justify-content: space-between; }
         .master-input { width: 45%; padding: 8px; border: 2px solid #dc3545; border-radius: 6px; font-size: 1.5em; text-align: right; font-weight: bold; color: #000; outline: none; }
-        .storage-bar { background: #e9ecef; border: 2px solid #adb5bd; border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+        
+        .storage-bar { background: #e9ecef; border: 2px solid #adb5bd; border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; transition: background 0.3s; }
+        .pro-mode .storage-bar { background: #dee2e6; border-color: #666; }
         .storage-controls { display: flex; align-items: center; gap: 10px; }
         .save-btn-main { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; white-space: nowrap; opacity: 0.9; }
+        .pro-mode .save-btn-main { background: #e67e22; opacity: 1; }
         .edit-toggle-btn { background: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.2em; min-width: 50px; opacity: 0.9; }
-        
+        .edit-toggle-btn.active { background: #dc3545; }
+        .save-list-container { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; min-height: 45px; }
+        .save-chip { background: #fff; border: 2px solid #007bff; color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.85em; font-weight: bold; white-space: nowrap; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+        .save-chip .del-icon { display: none; color: #dc3545; font-size: 1.3em; }
+        .editing .save-chip { border-style: dashed; opacity: 0.8; }
+        .editing .save-chip .del-icon { display: inline; }
+
         .utility-bar { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .util-btn { border: none; background: #6c757d; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; min-width: 60px; }
         .util-btn.manual { background: #17a2b8; width: auto; }
@@ -87,6 +97,7 @@
         #saveMessage { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 12px 25px; border-radius: 25px; opacity: 0; transition: opacity 0.3s; z-index: 9999; pointer-events: none; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .calc-toggle-btn { display: none; position: fixed; bottom: 15px; right: 15px; width: 60px; height: 60px; border-radius: 50%; background: #333; color: white; border: none; font-size: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1001; cursor: pointer; }
         .mobile-calc-close { display: none; background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; }
+        
         .pro-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3000; justify-content: center; align-items: center; padding: 20px; }
         .pro-modal-overlay.active { display: flex; }
         .pro-modal-content { background: #fff; padding: 25px; border-radius: 15px; text-align: center; max-width: 450px; width: 100%; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: popIn 0.3s ease; }
@@ -108,21 +119,21 @@
             <div id="modalTitle" class="pro-title">Pro Feature</div>
             <div id="modalDesc" class="pro-desc" style="text-align:center;"></div>
             <button class="pro-btn-buy" id="modalBtn" onclick="window.open('https://play.google.com/store/apps/details?id=jetdev.simplesheet', '_blank')">Upgrade to Pro</button>
-            <button class="pro-btn-close" id="btnClosePro" onclick="closeProModal()">Close</button>
+            <button class="pro-btn-buy" onclick="closeModal('proModal'); openUnlockModal();" style="background:#1a237e;">I have the Passcode</button>
+            <button class="pro-btn-close" id="btnClosePro" onclick="closeModal('proModal')">Close</button>
         </div>
     </div>
 
-    <div id="pcModal" class="pro-modal-overlay">
+    <div id="unlockModal" class="pro-modal-overlay">
         <div class="pro-modal-content" style="max-width:350px;">
-            <div class="pro-icon">💻</div>
-            <div id="pcModalTitle" class="pro-title">PC / Web Version</div>
-            <div id="pcModalDesc" class="pro-desc" style="margin-bottom: 10px; text-align:center;"></div>
-            <input type="text" class="url-box" id="pcUrlInput" value="https://thejetdev.github.io/Simple-Sheet-Pro/" readonly>
-            <button class="pro-btn-buy" id="btnCopyUrl" onclick="copyPcUrl()" style="background: linear-gradient(135deg, #1a237e, #283593);">Copy URL</button>
-            <button class="pro-btn-close" id="btnClosePc" onclick="closePcModal()">Close</button>
+            <div class="pro-title">Unlock Pro</div>
+            <div class="pro-desc" style="text-align:center; margin-bottom:15px;">Enter the passcode found in the Simple Sheet Android App.</div>
+            <input type="password" id="unlockPasscode" placeholder="****" style="font-size:20px; padding:10px; width:80%; text-align:center; margin-bottom:15px; border:2px solid #ccc; border-radius:6px; color:#000;">
+            <button class="pro-btn-buy" onclick="checkPasscode()" style="background: #28a745;">Unlock Now</button>
+            <button class="pro-btn-close" onclick="closeModal('unlockModal')">Cancel</button>
         </div>
     </div>
-    
+
     <div id="manualModal" class="pro-modal-overlay">
         <div class="pro-modal-content">
             <div id="manTitle" class="pro-title" style="text-align:center; border-bottom:1px solid #eee; padding-bottom:10px;">Manual</div>
@@ -135,7 +146,7 @@
         <div class="pro-modal-content" style="max-width:350px;">
             <div class="pro-title" id="impTitle">Import Data</div>
             <div class="pro-desc" id="impDesc" style="text-align:center; margin-bottom:10px;">Paste data here:</div>
-            <textarea id="importText" class="text-area-import" placeholder='Paste code here...'></textarea>
+            <textarea id="importText" class="text-area-import" placeholder='Paste code here...' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             <button class="pro-btn-buy" id="btnDoImport" onclick="executeImport()" style="background: #007bff;">Load Data</button>
             <button class="pro-btn-close" id="btnCloseImp" onclick="closeModal('importModal')">Close</button>
         </div>
@@ -147,7 +158,7 @@
         
         <div class="memo-container">
             <h3 id="memoTitle" style="margin: 0 0 10px 0; font-size: 1.1em; text-align: center; color: #555;">📝 Memo</h3>
-            <textarea id="memoArea" class="memo-area" placeholder="Viewing mode (Edit is Pro feature)" onclick="triggerProPromo()" readonly></textarea>
+            <textarea id="memoArea" class="memo-area" placeholder="Write notes here..." oninput="updateMemoLinks(); saveSettings();"></textarea>
             <div id="memoLinks" class="memo-links"></div>
         </div>
 
@@ -164,15 +175,15 @@
 
             <div class="storage-bar">
                 <div class="storage-controls">
-                    <button class="save-btn-main" onclick="triggerProPromo()">💾 <span id="btnSaveMemory">Save</span></button>
-                    <button id="editToggle" class="edit-toggle-btn" onclick="triggerProPromo()">🗑️</button>
+                    <button class="save-btn-main" id="btnSaveMain">💾 <span id="btnSaveMemory">Save</span></button>
+                    <button id="editToggle" class="edit-toggle-btn">🗑️</button>
                 </div>
                 <div id="saveList" class="save-list-container"></div>
             </div>
 
             <h2 id="title" style="font-weight: bold; margin-bottom: 15px; text-align:center;">Simple Sheet</h2>
 
-            <div style="text-align: center;">
+            <div style="text-align: center;" id="btnUnlockProContainer">
                 <button class="title-pro-btn" id="btnLinkPro" onclick="triggerProPromo()">🚀 Go to Pro Version</button>
             </div>
 
@@ -186,13 +197,13 @@
 
             <div id="main-sheet-mode">
                 <div class="master-row">
-                    <label id="masterLabelStart" style="font-weight:bold; color:#dc3545;">Base Value</label>
+                    <label id="masterLabelStart" style="font-weight:bold; color:#dc3545;">🏠 Base</label>
                     <input type="number" id="masterInput" class="master-input" step="any" placeholder="" oninput="updateDisplay()">
                 </div>
                 <div id="rows-container"></div>
                 <div style="text-align: center; margin-top: 15px; display: flex; gap: 8px;">
                     <button class="mode-button" id="addBtn" style="background:#28a745; color:white; flex-direction:row; min-height:auto; width:100%; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="addRow()">+ Row</button>
-                    <button class="mode-button" id="copyBtn" style="background:#007bff; color:white; flex-direction:row; min-height:auto; width:100%; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="copyPage()">All Copy</button>
+                    <button class="mode-button" id="copyBtn" style="background:#007bff; color:white; flex-direction:row; min-height:auto; width:100%; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="copyPage()">📋 Copy All</button>
                 </div>
             </div>
 
@@ -232,6 +243,14 @@
     </div>
 
     <script>
+        // --- 統合システム設定 ---
+        const PASS_REAL = "8392"; // ★Web版のPro解放パスコード（Androidアプリ内に表示させる）
+        let isPro = false;
+        let currentLanguage = 'en'; 
+        let isEditMode = false;
+        let currentCalc = "0";
+        let isLoading = false;
+
         const fullManual = {
             ja: "Simple Sheet について\n\n電卓より整理できて、\nスプレッドシートほど複雑ではありません。\n\nSimple Sheet は、\n計算を整理して残すためのアプリです。\n\n足す、引く、掛ける、割る、\nこの4つの計算で構成します。\n計算の流れはそのまま残ります。\n\n【計算モードの切替】\n🏠 元の数字: 一番上の「元の数字」を使います。\n🔗 チェーン: 一つ上の行の計算結果を使います。\n\nボタンをタップして切り替えます。\n\n【オールコピー (表として使う)】\n計算結果を表としてコピーします。\nExcel や Google スプレッドシートに貼り付けて使えます。\n(JSONコードは含まれません)\n\n【出力 (データとして使う)】\n計算データそのものをコピーします。\nSimple Sheet に貼り付けて、共有・再編集できます。\n\n【読込(インポート)】\nコピーしたテキストを読込画面に貼り付けます。\n\n挨拶文などが混ざっていても、自動でデータだけを抜き出します。\n\n【機能制限について】\n保存とメモ帳の書き込みはPro版の機能です。",
             en: "About Simple Sheet\n\nMore organized than a calculator,\nLess complicated than a spreadsheet.\n\nSimple Sheet is an app for organizing and keeping your calculations.\n\nIt consists of 4 operations: Add, Subtract, Multiply, Divide.\nThe flow of calculation remains.\n\n【Switching Calc Mode】\n🏠 Base: Uses the top 'Base Value'.\n🔗 Chain: Uses the result of the row directly above.\nTap the button to switch.\n\n【Copy All (Use as Table)】\nCopies the result as a table.\nYou can paste it into Excel or Google Sheets.\n(JSON code is not included)\n\n【Export (Use as Data)】\nCopies the calculation data code.\nPaste into Simple Sheet to share or re-edit.\n\n【Import】\nPaste the copied text into the import screen.\n\nEven if there are greetings or other text mixed in, it will automatically extract only the data.\n\n【Feature Limitations】\nSaving and memo writing are Pro version features.",
@@ -274,11 +293,13 @@
                   proTitle: "Pro-Funktion 💎", proDesc: "Kaufen Sie die App für Pro-Zugang.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen"}
         };
 
-        let currentLanguage = 'en'; 
-        let isEditMode = false;
-        let currentCalc = "0";
-
         function init() {
+            // モードチェック
+            if (localStorage.getItem("proWebUnlocked") === "true") {
+                isPro = true;
+                document.body.classList.add("pro-mode");
+            }
+
             const langCont = document.getElementById('langContainer');
             Object.keys(languageMap).forEach(lang => {
                 const btn = document.createElement('button');
@@ -288,7 +309,7 @@
                 langCont.appendChild(btn);
             });
 
-            // ▼ 追加：URLから飛んできたデータをキャッチする！ ▼
+            // URLデータのキャッチ処理
             const params = new URLSearchParams(window.location.search);
             const urlData = params.get('data');
 
@@ -305,102 +326,62 @@
                     addRow();
                 }
             } else {
-                // ▼ URLがない場合は前回の続きを復元（ノーマル版のキー） ▼
-                const savedDataStr = localStorage.getItem('simpleSheetSettings_final');
+                // 統合版保存キー（データが消えないよう過去のキーもフォールバック）
+                const savedDataStr = localStorage.getItem('simpleSheetSettings_integrated') 
+                                  || localStorage.getItem('simpleSheetSettings_final')
+                                  || localStorage.getItem('simpleSheetSettings_pro');
                 if (savedDataStr) {
                     try {
                         const parsed = JSON.parse(savedDataStr);
-                        if (Object.keys(parsed).length === 0) {
-                            addRow();
-                        } else {
-                            applyData(parsed);
-                        }
-                    } catch(e) { 
-                        console.error("Restore error", e); 
-                        addRow();
-                    }
+                        if (Object.keys(parsed).length === 0) addRow();
+                        else applyData(parsed);
+                    } catch(e) { addRow(); }
                 } else {
                     addRow(); 
                 }
-            } // ★else閉じ
-
-            // ▼ 言語設定など
-            let savedLang = localStorage.getItem('simpleSheetLang_final');
-            if(!savedLang) {
-                const browserLang = (navigator.language || 'en').slice(0, 2);
-                if(languageMap[browserLang]) savedLang = browserLang;
-                else savedLang = 'en';
             }
+
+            let savedLang = localStorage.getItem('simpleSheetLang_integrated') || localStorage.getItem('simpleSheetLang_final') || 'en';
             setLanguage(savedLang); 
             
+            applyModeUI(); // モードごとのUI適用
+            if(isPro) renderSaveList();
             updateMemoLinks();
         }
 
-        // ★修正3：空欄が「0」に変わってしまうのを防ぐ
-        function getScreenData() {
-            return {
-                n: document.getElementById('masterLabel').value, 
-                b: document.getElementById('masterInput').value, 
-                m: document.getElementById('memoArea').value, 
-                r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => {
-                    let rawVal = r.querySelector('.multiplier-input').value;
-                    return {
-                        n: r.querySelector('.text-label-input').value, 
-                        p: rawVal === "" ? "" : (parseFloat(rawVal) || 0), // 空欄は空欄のまま記憶する
-                        o: r.querySelector('.operator-display').textContent.trim(), 
-                        pct: r.querySelector('.percent-toggle').classList.contains('active'), 
-                        c: r.querySelector('.base-toggle').classList.contains('chain') 
-                    };
-                })
-            };
-        }
-
-        // ★修正4：リロード時の重複を防ぐための画面リセット処理を追加
-        function applyData(s) {
-            if(!s) return;
+        // --- Pro/Free モード切り替えUI ---
+        function applyModeUI() {
+            const memoArea = document.getElementById('memoArea');
+            const btnSave = document.getElementById('btnSaveMain');
+            const btnEdit = document.getElementById('editToggle');
+            const unlockCont = document.getElementById('btnUnlockProContainer');
             
-            document.getElementById('masterLabel').value = s.n || s.name || s.masterLabel || '';
-            document.getElementById('masterInput').value = s.b || s.base || s.masterInput || '';
-            
-            let memoText = s.m || s.memo || '';
-            // スマホ版Redditのコピペバグ等でURLがくっついてしまった場合、強制的に改行を挟んで分離する
-            memoText = memoText.replace(/([^\s])(https?:\/\/)/gi, '$1\n$2');
-            document.getElementById('memoArea').value = memoText;
-            
-            updateMemoLinks();
-            
-            // 既存の行を一旦すべて削除して真っ新にする
-            document.getElementById('rows-container').innerHTML = '';
-            
-            let rowsToLoad = s.r || s.rows || s.simpleRows;
-            if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
-                rowsToLoad.forEach(r => {
-                    let op = r.o || r.operator || '+';
-                    let label = r.n || r.label || '';
-                    let val = (r.p !== undefined) ? r.p : (r.multiplier !== undefined ? r.multiplier : '');
-                    let isPct = (r.pct !== undefined) ? r.pct : (r.isPercentActive || false);
-                    let isChain = (r.c !== undefined) ? r.c : (r.baseMode === 'chain');
-                    
-                    let rowData = {
-                        label: label, multiplier: val, operator: op, isPercentActive: isPct, baseMode: isChain ? 'chain' : 'master'
-                    };
-                    addRow(rowData);
-                }); 
-            } else { 
-                addRow(); 
+            if (isPro) {
+                document.getElementById('title').textContent = languageMap[currentLanguage].title + " PRO";
+                memoArea.readOnly = false;
+                memoArea.style.cursor = "text";
+                memoArea.onclick = null;
+                btnSave.onclick = saveToMemory;
+                btnEdit.onclick = toggleEditMode;
+                unlockCont.style.display = "none";
+            } else {
+                document.getElementById('title').textContent = languageMap[currentLanguage].title;
+                memoArea.readOnly = true;
+                memoArea.style.cursor = "not-allowed";
+                memoArea.onclick = triggerProPromo;
+                btnSave.onclick = triggerProPromo;
+                btnEdit.onclick = triggerProPromo;
+                unlockCont.style.display = "block";
             }
-            updateDisplay();
         }
 
         function setLanguage(lang) {
             currentLanguage = lang; 
-            localStorage.setItem('simpleSheetLang_final', lang);
-            const d = languageMap[lang];
+            localStorage.setItem('simpleSheetLang_integrated', lang);
+            const d = languageMap[lang] || languageMap['en'];
             
-            document.getElementById('title').textContent = d.title;
-            // 変更点: ラベルspan削除に伴い、プレースホルダーに設定
+            document.getElementById('title').textContent = isPro ? d.title + " PRO" : d.title;
             document.getElementById('masterLabel').placeholder = d.masterLabelName;
-            
             document.getElementById('masterLabelStart').textContent = d.masterLabelStart;
             document.getElementById('btnClear').textContent = d.btnClear;
             document.getElementById('btnExport').textContent = d.btnExport;
@@ -419,39 +400,38 @@
             document.getElementById('manBody').innerText = fullManual[lang] || fullManual['en'];
             document.getElementById('manClose').textContent = d.btnClose;
             document.getElementById('btnManual').textContent = d.manual;
-            document.getElementById('pcModalTitle').textContent = d.pcTitle;
-            document.getElementById('pcModalDesc').textContent = d.pcDesc;
-            document.getElementById('btnCopyUrl').textContent = d.btnCopy;
-            document.getElementById('btnClosePc').textContent = d.btnClose;
             document.getElementById('impTitle').textContent = d.impTitle;
             document.getElementById('impDesc').textContent = d.impDesc;
             document.getElementById('btnDoImport').textContent = d.btnLoad;
             document.getElementById('btnCloseImp').textContent = d.btnClose;
             if(document.getElementById('memoTitle')) document.getElementById('memoTitle').textContent = d.memoTitle;
             
-            document.querySelectorAll('.text-label-input').forEach(input => {
-                input.placeholder = d.rowLabel;
-            });
+            document.querySelectorAll('.text-label-input').forEach(input => { input.placeholder = d.rowLabel; });
             updateDisplay();
         }
 
+        // --- パスコード関連 ---
         function triggerProPromo() { document.getElementById('proModal').classList.add('active'); }
-        function closeProModal() { document.getElementById('proModal').classList.remove('active'); }
-        function triggerPcModal() { document.getElementById('pcModal').classList.add('active'); }
-        function closePcModal() { document.getElementById('pcModal').classList.remove('active'); }
-        function copyPcUrl() {
-            const urlInput = document.getElementById('pcUrlInput');
-            urlInput.select();
-            urlInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(urlInput.value);
-            showMsg(languageMap[currentLanguage].copyMsg);
-        }
+        function openUnlockModal() { document.getElementById('unlockPasscode').value = ""; document.getElementById('unlockModal').classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function openManual() { document.getElementById('manualModal').classList.add('active'); }
-        function openImport() { 
-            document.getElementById('importText').value = "";
-            document.getElementById('importModal').classList.add('active'); 
+        
+        function checkPasscode() {
+            const val = document.getElementById("unlockPasscode").value;
+            if(val === PASS_REAL || val === "5963") { // 5963はテスト用の裏道
+                localStorage.setItem("proWebUnlocked", "true");
+                isPro = true;
+                document.body.classList.add("pro-mode");
+                closeModal('unlockModal');
+                applyModeUI();
+                renderSaveList();
+                showMsg("Pro Unlocked! 💎");
+            } else {
+                showMsg("Wrong Passcode");
+            }
         }
+
+        function openManual() { document.getElementById('manualModal').classList.add('active'); }
+        function openImport() { document.getElementById('importText').value = ""; document.getElementById('importModal').classList.add('active'); }
 
         function stripError(num) { return parseFloat(num.toPrecision(12)); }
         function formatNum(num) { return stripError(num).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 }); }
@@ -483,7 +463,6 @@
             saveSettings();
         }
 
-        // --- メモ帳のURLリンク機能 ---
         function updateMemoLinks() {
             const text = document.getElementById('memoArea').value;
             const linkDiv = document.getElementById('memoLinks');
@@ -502,10 +481,112 @@
             }
         }
 
-        function saveSettings(){ 
-            localStorage.setItem('simpleSheetSettings_final', JSON.stringify(getScreenData())); 
+        function getScreenData() {
+            return {
+                n: document.getElementById('masterLabel').value, 
+                b: document.getElementById('masterInput').value, 
+                m: document.getElementById('memoArea').value, 
+                r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => {
+                    let rawVal = r.querySelector('.multiplier-input').value;
+                    return {
+                        n: r.querySelector('.text-label-input').value, 
+                        p: rawVal === "" ? "" : (parseFloat(rawVal) || 0),
+                        o: r.querySelector('.operator-display').textContent.trim(), 
+                        pct: r.querySelector('.percent-toggle').classList.contains('active'), 
+                        c: r.querySelector('.base-toggle').classList.contains('chain') 
+                    };
+                })
+            };
         }
 
+        function applyData(s) {
+            if(!s) return;
+            isLoading = true;
+            document.getElementById('masterLabel').value = s.n || s.name || s.masterLabel || '';
+            document.getElementById('masterInput').value = s.b || s.base || s.masterInput || '';
+            
+            let memoText = s.m || s.memo || '';
+            memoText = memoText.replace(/([^\s])(https?:\/\/)/gi, '$1\n$2');
+            document.getElementById('memoArea').value = memoText;
+            updateMemoLinks();
+            
+            document.getElementById('rows-container').innerHTML = '';
+            
+            let rowsToLoad = s.r || s.rows || s.simpleRows;
+            if(Array.isArray(rowsToLoad) && rowsToLoad.length > 0) {
+                rowsToLoad.forEach(r => {
+                    let op = r.o || r.operator || '+';
+                    let label = r.n || r.label || '';
+                    let val = (r.p !== undefined) ? r.p : (r.multiplier !== undefined ? r.multiplier : '');
+                    let isPct = (r.pct !== undefined) ? r.pct : (r.isPercentActive || false);
+                    let isChain = (r.c !== undefined) ? r.c : (r.baseMode === 'chain');
+                    addRow({ label: label, multiplier: val, operator: op, isPercentActive: isPct, baseMode: isChain ? 'chain' : 'master' });
+                }); 
+            } else { 
+                addRow(); 
+            }
+            isLoading = false;
+            updateDisplay();
+        }
+
+        function saveSettings(){ 
+            if(isLoading) return;
+            localStorage.setItem('simpleSheetSettings_integrated', JSON.stringify(getScreenData())); 
+        }
+
+        // --- Pro版: 保存機能 ---
+        function toggleEditMode() {
+            if(!isPro) return;
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('editToggle');
+            btn.classList.toggle('active', isEditMode);
+            btn.textContent = isEditMode ? '✓' : '🗑️';
+            document.getElementById('saveList').classList.toggle('editing', isEditMode);
+        }
+
+        function saveToMemory() {
+            if(!isPro) return;
+            const data = getScreenData();
+            const name = data.n || "No Name";
+            let lib = JSON.parse(localStorage.getItem('sheetLibrary_pro') || '[]');
+            lib.push({ id: Date.now(), name: name, content: data });
+            localStorage.setItem('sheetLibrary_pro', JSON.stringify(lib));
+            renderSaveList();
+            showMsg(languageMap[currentLanguage].msgSave);
+        }
+
+        function renderSaveList() {
+            if(!isPro) return;
+            const cont = document.getElementById('saveList');
+            const lib = JSON.parse(localStorage.getItem('sheetLibrary_pro') || '[]');
+            cont.innerHTML = '';
+            lib.slice().reverse().forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = 'save-chip';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = item.name;
+                const delIcon = document.createElement('span');
+                delIcon.className = 'del-icon';
+                delIcon.textContent = '🗑';
+                chip.appendChild(nameSpan); chip.appendChild(delIcon);
+                chip.onclick = () => {
+                    if(isEditMode) deleteMemory(item.id);
+                    else { applyData(item.content); showMsg(languageMap[currentLanguage].msgLoad); }
+                };
+                cont.appendChild(chip);
+            });
+        }
+
+        function deleteMemory(id) {
+            if(confirm(languageMap[currentLanguage].confirmDel)) {
+                let lib = JSON.parse(localStorage.getItem('sheetLibrary_pro') || '[]');
+                lib = lib.filter(i => i.id !== id);
+                localStorage.setItem('sheetLibrary_pro', JSON.stringify(lib));
+                renderSaveList();
+            }
+        }
+
+        // --- 行の追加と操作 ---
         function addRow(s=null) {
             const id = s && s.id ? s.id : Math.random().toString(36).substr(2, 5);
             const ph = languageMap[currentLanguage].rowLabel;
@@ -552,38 +633,25 @@
             showMsg(languageMap[currentLanguage].copyMsg); 
         }
 
+        // --- 出力とコピー ---
         function escapeForExcel(text) {
             if (!text) return "";
-            let str = String(text);
-            str = str.replace(/\t/g, ' '); 
-            str = str.replace(/"/g, '""'); 
-            if (str.search(/[\n\r"]/) >= 0) {
-                str = `"${str}"`; 
-            }
+            let str = String(text).replace(/\t/g, ' ').replace(/"/g, '""'); 
+            if (str.search(/[\n\r"]/) >= 0) str = `"${str}"`; 
             return str;
         }
 
         function escapeHtml(str) {
             if(!str) return "";
-            return str.replace(/[&<>"']/g, function(m) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[m];
-            });
+            return str.replace(/[&<>"']/g, function(m) { return {'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#039;'}[m]; });
         }
 
         function insertAutoBreaks(text) {
             let res = "";
             const lines = text.split('\n');
-            lines.forEach((line, idx) => {
+            lines.forEach(line => {
                 if(line.length > 40) {
-                    for(let i=0; i<line.length; i+=40) {
-                        res += escapeHtml(line.substr(i, 40)) + "<br>";
-                    }
+                    for(let i=0; i<line.length; i+=40) res += escapeHtml(line.substr(i, 40)) + "<br>";
                 } else {
                     res += escapeHtml(line) + "<br>";
                 }
@@ -591,36 +659,24 @@
             return res;
         }
 
-        // --- Copy Logic (HTML + Text) ---
         async function copyPage() { 
             const title = document.getElementById('masterLabel').value || 'Sheet';
             const baseLabel = languageMap[currentLanguage].masterLabelStart;
             const baseVal = document.getElementById('masterInput').value;
             
-            // --- 修正：SS1v1化と共有URLの生成 ---
             const data = getScreenData();
             const jsonCode = JSON.stringify(data);
             const compressed = LZString.compressToBase64(jsonCode);
             const ss1Code = "SS1v1:" + compressed;
             const shareUrl = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
-            // ---------------------------------------------------
 
-            // Text Format
-            let t = `【${escapeForExcel(title)}】\n`;
-            t += `${baseLabel}\t\t${baseVal}\n`;
-            
-            // HTML Format
-            let h = `<table>`;
-            // タイトル: 中央寄せ・背景グレー・太字なし
-            h += `<tr><td colspan="3" style="background-color:#EFEFEF; text-align:center; font-size:14pt; padding:5px;">【${escapeHtml(title)}】</td></tr>`;
-            
-            // スプレッドシートの列幅（280pxなど）を指定
+            let t = `【${escapeForExcel(title)}】\n${baseLabel}\t\t${baseVal}\n`;
+            let h = `<table><tr><td colspan="3" style="background-color:#EFEFEF; text-align:center; font-size:14pt; padding:5px;">【${escapeHtml(title)}】</td></tr>`;
             h += `<tr><td style="width: 280px; padding:3px 5px;">${escapeHtml(baseLabel)}</td><td style="width: 20px;"></td><td style="width: 100px; text-align:right; padding:3px 5px;">${escapeHtml(baseVal)}</td></tr>`;
 
             document.querySelectorAll('#rows-container .row').forEach(r => { 
                 const label = r.querySelector('.text-label-input').value || '-';
                 const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
-                
                 t += `${escapeForExcel(label)}\t\t${val}\n`; 
                 h += `<tr><td style="padding:3px 5px;">${escapeHtml(label)}</td><td></td><td style="text-align:right; padding:3px 5px;">${escapeHtml(val)}</td></tr>`;
             });
@@ -628,7 +684,6 @@
             const memo = document.getElementById('memoArea').value;
             if(memo) {
                 t += `\n[Memo]\n${escapeForExcel(memo)}`;
-                // メモ: 薄い黄色背景・自動改行挿入・折り返しスタイル
                 const htmlMemo = insertAutoBreaks(memo);
                 h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word; padding:8px 5px;"><b>[ Memo ]</b><br>${htmlMemo}</td></tr>`;
 
@@ -644,26 +699,16 @@
                 }
             }
 
-            // ▼ 修正：一番最後に共有URLの行を追加！ ▼
             t += `\n▼ リンクを開いてデータを取り込む ▼\n${shareUrl}\n`;
-            
             h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px; border-top: 2px solid #ccc;">▼ リンクを開いてデータを取り込む ▼</td></tr>`;
             h += `<tr><td colspan="3" style="padding:5px; word-break: break-all; font-family: monospace; font-size: 0.85em;"><a href="${shareUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${shareUrl}</a></td></tr>`;
-            // ▲ ここまで ▲
-
             h += `</table>`;
 
             try {
-                const blobText = new Blob([t], { type: 'text/plain' });
-                const blobHtml = new Blob([h], { type: 'text/html' });
-                const item = new ClipboardItem({ 
-                    'text/plain': blobText, 
-                    'text/html': blobHtml 
-                });
+                const item = new ClipboardItem({ 'text/plain': new Blob([t], { type: 'text/plain' }), 'text/html': new Blob([h], { type: 'text/html' }) });
                 await navigator.clipboard.write([item]);
                 showMsg(languageMap[currentLanguage].copyMsg);
             } catch (err) {
-                // Fallback
                 navigator.clipboard.writeText(t);
                 showMsg(languageMap[currentLanguage].copyMsg + " (Text)");
             }
@@ -672,131 +717,70 @@
         function exportData() { 
             const data = getScreenData();
             const jsonCode = JSON.stringify(data);
-            
             const compressed = LZString.compressToBase64(jsonCode);
             const ss1Code = "SS1v1:" + compressed;
             const shareUrl = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
 
-            let output = "";
-            const title = data.n || "Simple Sheet";
-            output += `【 ${title} 】\n\n`;
-            
-            const memo = data.m || "";
+            let output = `【 ${data.n || "Simple Sheet"} 】\n\n`;
             const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const matches = memo.match(urlRegex);
+            const matches = (data.m || "").match(urlRegex);
             if(matches && matches.length > 0) {
                 output += "[Links]\n";
                 matches.forEach(url => { output += `${url}\n`; });
                 output += "\n";
             }
-            
-            output += "▼ リンクを開いてデータを取り込む ▼\n";
-            output += shareUrl + "\n";
-            
+            output += "▼ リンクを開いてデータを取り込む ▼\n" + shareUrl + "\n";
             navigator.clipboard.writeText(output); 
             showMsg(languageMap[currentLanguage].msgExported); 
         }
 
-        // --- Import (スマホ・全環境対応の究極版) ---
         function executeImport() {
             let rawText = document.getElementById('importText').value;
-            if(!rawText) {
-                showMsg("Paste data / データを貼り付けてください"); 
-                return;
-            }
+            if(!rawText) { showMsg("Paste data"); return; }
 
             try {
-                // ▼ 修正：SS1v1コードだけをピンポイントで抜き出して解読する！ ▼
                 const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=%]+/);
                 if (ss1Match) {
                     let extracted = ss1Match[0];
-                    // 抜き出した部分だけを安全にURLデコードする
                     try { extracted = decodeURIComponent(extracted); } catch(e) {}
-                    
                     if (extracted.startsWith("SS1v1:")) {
-                        const compressed = extracted.substring(6); // "SS1v1:" を削る
-                        const decompressed = LZString.decompressFromBase64(compressed);
+                        const decompressed = LZString.decompressFromBase64(extracted.substring(6));
                         if (decompressed) {
                             applyData(JSON.parse(decompressed));
                             showMsg(languageMap[currentLanguage].msgLoad);
                             closeModal('importModal');
-                            return; // 成功したらここで終了
+                            return; 
                         }
                     }
                 }
 
-            try {
-                // 1. 基本的な浄化（スマホの不可視ゴミを徹底排除）
-                let cleanText = rawText
-                    .replace(/\u00A0/g, " ")
-                    .replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "")
-                    .replace(/[“”]/g, '"')
-                    .replace(/```json/gi, "")
-                    .replace(/```/g, "")
-                    .trim();
-
+                let cleanText = rawText.replace(/\u00A0/g, " ").replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "").replace(/[“”]/g, '"').replace(/```json/gi, "").replace(/```/g, "").trim();
                 const marker = "▼ DATA CODE ▼";
-                if (cleanText.includes(marker)) {
-                    cleanText = cleanText.split(marker)[1].trim();
-                }
+                if (cleanText.includes(marker)) cleanText = cleanText.split(marker)[1].trim();
 
-                // 2. JSON部分を特定して抽出
                 const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                    let jsonPart = jsonMatch[0];
-                    
-                    // --- 【最強のゴミ掃除＆スマホ修復ロジック】 ---
-                    // ① Reddit特有の邪魔なブラケットだけをピンポイントで直す
-                    jsonPart = jsonPart.replace(/\\\[/g, "[").replace(/\\\]/g, "]");
-                    
-                    // ② 本来の改行コード(\n)を保護する
-                    jsonPart = jsonPart.replace(/\\n/g, "§N§");
-                    
-                    // ③ JSONを破壊する「スマホ特有の物理的な改行」をスペースに変換
-                    jsonPart = jsonPart.replace(/\r?\n/g, " ");
-                    
-                    // ④ 保護した改行コードを戻す
-                    jsonPart = jsonPart.replace(/§N§/g, "\\n");
-
-                    // ⑤ 【新機能】スマホでのコピペ漏れ（ケツ切れ）を自動修復してパース！
-                    const tryParse = (str) => {
-                        try { return JSON.parse(str); } catch(e) { return null; }
-                    };
-                    
-                    // そのまま → } を足す → ]} を足す → }]} を足す （執念の4段構え）
+                    let jsonPart = jsonMatch[0].replace(/\\\[/g, "[").replace(/\\\]/g, "]").replace(/\\n/g, "§N§").replace(/\r?\n/g, " ").replace(/§N§/g, "\\n");
+                    const tryParse = (str) => { try { return JSON.parse(str); } catch(e) { return null; } };
                     let j = tryParse(jsonPart) || tryParse(jsonPart + '}') || tryParse(jsonPart + ']}') || tryParse(jsonPart + '}]}');
-                    
                     if (j) {
-                        applyData(j);
-                        showMsg(languageMap[currentLanguage].msgLoad);
-                        closeModal('importModal');
-                        return; // 成功したらここで終了
+                        applyData(j); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
                     }
                 }
 
-                // 3. JSONがダメならテキスト解析へ挑戦
                 if(tryParseText(rawText)){ 
-                    showMsg(languageMap[currentLanguage].msgLoad);
-                    closeModal('importModal');
+                    showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal');
                 } else {
-                    showMsg(languageMap[currentLanguage].msgError); // エラーメッセージ
-                    closeModal('importModal'); 
+                    showMsg(languageMap[currentLanguage].msgError); closeModal('importModal'); 
                 }
-
             } catch(err) {
-                console.error("FATAL IMPORT ERROR:", err);
-                showMsg("System Error");
-                closeModal('importModal');
+                console.error("IMPORT ERROR:", err);
+                showMsg("System Error"); closeModal('importModal');
             }
         }
 
         function tryParseText(text) {
-            // テキスト解析前にも念のため基本的な浄化を行う
-            const purifiedText = text
-                .replace(/\u00A0/g, " ")
-                .replace(/\u200B/g, "")
-                .replace(/\u200E/g, "");
-
+            const purifiedText = text.replace(/\u00A0/g, " ").replace(/\u200B/g, "").replace(/\u200E/g, "");
             const lines = purifiedText.trim().split(/\r?\n/);
             if (lines.length < 1) return false;
             let name = ""; let base = 0; let rows = []; let startRowIdx = 0;
@@ -809,27 +793,21 @@
                 const rowText = lines[startRowIdx];
                 const baseValMatch = rowText.match(/[\d\.-]+/);
                 if (rowText.includes("Base") || rowText.includes("元") || (!rowText.includes("\t") && baseValMatch)) {
-                    if (baseValMatch) base = parseFloat(baseValMatch[0]);
-                    startRowIdx++;
+                    if (baseValMatch) base = parseFloat(baseValMatch[0]); startRowIdx++;
                 }
             }
 
-            let readingMemo = false;
-            let memoContent = "";
-
+            let readingMemo = false; let memoContent = "";
             for (let i = startRowIdx; i < lines.length; i++) {
                 const line = lines[i].trim(); if (!line) continue;
                 if (line.includes("[Memo]") || line.includes("[Memo ]") || line.includes("▼ DATA CODE")) { readingMemo = true; continue; }
                 if (readingMemo) { 
                     if(line.includes("▼ DATA CODE")) break; 
-                    if (!line.startsWith("Link\t")) {
-                        memoContent += line + "\n"; 
-                    }
+                    if (!line.startsWith("Link\t")) memoContent += line + "\n"; 
                     continue; 
                 }
 
                 let parts = line.split(/\t+/); if (parts.length < 2) parts = line.split(/\s{2,}/);
-                
                 if (parts.length >= 2) {
                     let valStr = parts[parts.length-1].replace(/,/g, '');
                     if (!isNaN(parseFloat(valStr))) {
@@ -852,61 +830,27 @@
         }
 
         function calcInput(v) { 
-            if(v === 'AC') { currentCalc = "0"; }
-            else if(v === 'BS') { currentCalc = currentCalc.length > 1 ? currentCalc.slice(0, -1) : "0"; }
-            else {
-                if(currentCalc === "0" && v !== ".") currentCalc = v; 
-                else currentCalc += v; 
-            }
+            if(v === 'AC') currentCalc = "0"; 
+            else if(v === 'BS') currentCalc = currentCalc.length > 1 ? currentCalc.slice(0, -1) : "0"; 
+            else { if(currentCalc === "0" && v !== ".") currentCalc = v; else currentCalc += v; }
             document.getElementById('calcDisplay').value = currentCalc; 
         }
-        
         function calcResult() { 
             try { 
-                let expression = currentCalc.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100');
-                let res = eval(expression); 
+                let res = eval(currentCalc.replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100')); 
                 currentCalc = stripError(res).toString();
-            } catch(e) { 
-                currentCalc = "Error"; 
-            } 
+            } catch(e) { currentCalc = "Error"; } 
             document.getElementById('calcDisplay').value = currentCalc; 
         }
-        function copyCalcResult() { 
-            navigator.clipboard.writeText(document.getElementById('calcDisplay').value); 
-            showMsg(languageMap[currentLanguage].copyMsg); 
-        }
-        function toggleCalc() { 
-            document.getElementById('sideCalc').classList.toggle('active'); 
-        }
-
-        function clearNumbers() { 
-            document.getElementById('masterInput').value = ""; 
-            document.getElementById('memoArea').value = ""; 
-            document.querySelectorAll('.multiplier-input').forEach(i => i.value = ""); 
-            updateMemoLinks();
-            updateDisplay(); 
-        }
-        function fullReset() { 
-            if(confirm(languageMap[currentLanguage].confirmReset)) { 
-                localStorage.removeItem('simpleSheetSettings_final'); 
-                location.reload(); 
-            } 
-        }
-        function showMsg(t) { 
-            const m = document.getElementById('saveMessage'); 
-            m.textContent = t; 
-            m.style.opacity = 1; 
-            setTimeout(() => m.style.opacity = 0, 1500); 
-        }
+        function copyCalcResult() { navigator.clipboard.writeText(document.getElementById('calcDisplay').value); showMsg(languageMap[currentLanguage].copyMsg); }
+        function toggleCalc() { document.getElementById('sideCalc').classList.toggle('active'); }
+        function clearNumbers() { document.getElementById('masterInput').value = ""; document.getElementById('memoArea').value = ""; document.querySelectorAll('.multiplier-input').forEach(i => i.value = ""); updateMemoLinks(); updateDisplay(); }
+        function fullReset() { if(confirm(languageMap[currentLanguage].confirmReset)) { localStorage.removeItem('simpleSheetSettings_integrated'); location.reload(); } }
+        function showMsg(t) { const m = document.getElementById('saveMessage'); m.textContent = t; m.style.opacity = 1; setTimeout(() => m.style.opacity = 0, 1500); }
 
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
-            });
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err)); });
         }
     </script>
 </body>
 </html>
-
-
-
