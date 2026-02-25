@@ -845,7 +845,22 @@
         function copyCalcResult() { navigator.clipboard.writeText(document.getElementById('calcDisplay').value); showMsg(languageMap[currentLanguage].copyMsg); }
         function toggleCalc() { document.getElementById('sideCalc').classList.toggle('active'); }
         function clearNumbers() { document.getElementById('masterInput').value = ""; document.getElementById('memoArea').value = ""; document.querySelectorAll('.multiplier-input').forEach(i => i.value = ""); updateMemoLinks(); updateDisplay(); }
-        function fullReset() { if(confirm(languageMap[currentLanguage].confirmReset)) { localStorage.removeItem('simpleSheetSettings_integrated'); location.reload(); } }
+        function fullReset() { 
+            if(confirm(languageMap[currentLanguage].confirmReset)) { 
+                // 1. タイトル、元の数字、メモをすべて空にする
+                document.getElementById('masterLabel').value = ""; 
+                document.getElementById('masterInput').value = ""; 
+                document.getElementById('memoArea').value = ""; 
+                
+                // 2. 作られた「行」をすべて消去し、まっさらな1行だけ作り直す
+                document.getElementById('rows-container').innerHTML = ""; 
+                addRow(); 
+                
+                // 3. 画面を更新（ここで自動的に「空の状態」が上書き保存される）
+                updateMemoLinks(); 
+                updateDisplay(); 
+            } 
+        }
         function showMsg(t) { const m = document.getElementById('saveMessage'); m.textContent = t; m.style.opacity = 1; setTimeout(() => m.style.opacity = 0, 1500); }
 
         if ('serviceWorker' in navigator) {
@@ -854,3 +869,4 @@
     </script>
 </body>
 </html>
+
