@@ -597,6 +597,14 @@
             const baseLabel = languageMap[currentLanguage].masterLabelStart;
             const baseVal = document.getElementById('masterInput').value;
             
+            // --- 修正：SS1v1化と共有URLの生成 ---
+            const data = getScreenData();
+            const jsonCode = JSON.stringify(data);
+            const compressed = LZString.compressToBase64(jsonCode);
+            const ss1Code = "SS1v1:" + compressed;
+            const shareUrl = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
+            // ---------------------------------------------------
+
             // Text Format
             let t = `【${escapeForExcel(title)}】\n`;
             t += `${baseLabel}\t\t${baseVal}\n`;
@@ -604,15 +612,17 @@
             // HTML Format
             let h = `<table>`;
             // タイトル: 中央寄せ・背景グレー・太字なし
-            h += `<tr><td colspan="3" style="background-color:#EFEFEF; text-align:center; font-size:14pt;">【${escapeHtml(title)}】</td></tr>`;
-            h += `<tr><td>${escapeHtml(baseLabel)}</td><td></td><td>${escapeHtml(baseVal)}</td></tr>`;
+            h += `<tr><td colspan="3" style="background-color:#EFEFEF; text-align:center; font-size:14pt; padding:5px;">【${escapeHtml(title)}】</td></tr>`;
+            
+            // スプレッドシートの列幅（280pxなど）を指定
+            h += `<tr><td style="width: 280px; padding:3px 5px;">${escapeHtml(baseLabel)}</td><td style="width: 20px;"></td><td style="width: 100px; text-align:right; padding:3px 5px;">${escapeHtml(baseVal)}</td></tr>`;
 
             document.querySelectorAll('#rows-container .row').forEach(r => { 
                 const label = r.querySelector('.text-label-input').value || '-';
                 const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
                 
                 t += `${escapeForExcel(label)}\t\t${val}\n`; 
-                h += `<tr><td>${escapeHtml(label)}</td><td></td><td>${escapeHtml(val)}</td></tr>`;
+                h += `<tr><td style="padding:3px 5px;">${escapeHtml(label)}</td><td></td><td style="text-align:right; padding:3px 5px;">${escapeHtml(val)}</td></tr>`;
             });
             
             const memo = document.getElementById('memoArea').value;
@@ -620,19 +630,27 @@
                 t += `\n[Memo]\n${escapeForExcel(memo)}`;
                 // メモ: 薄い黄色背景・自動改行挿入・折り返しスタイル
                 const htmlMemo = insertAutoBreaks(memo);
-                h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word;"><b>[ Memo ]</b><br>${htmlMemo}</td></tr>`;
+                h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word; padding:8px 5px;"><b>[ Memo ]</b><br>${htmlMemo}</td></tr>`;
 
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
                 const matches = memo.match(urlRegex);
                 if(matches) {
                     t += "\n[Links]\n";
-                    h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold;">[ Links ]</td></tr>`;
+                    h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px;">[ Links ]</td></tr>`;
                     matches.forEach(url => {
                         t += `${url}\n`;
-                        h += `<tr><td colspan="3"><a href="${url}" target="_blank">${url}</a></td></tr>`;
+                        h += `<tr><td colspan="3" style="padding:2px 5px;"><a href="${url}" target="_blank">${url}</a></td></tr>`;
                     });
                 }
             }
+
+            // ▼ 修正：一番最後に共有URLの行を追加！ ▼
+            t += `\n▼ リンクを開いてデータを取り込む ▼\n${shareUrl}\n`;
+            
+            h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px; border-top: 2px solid #ccc;">▼ リンクを開いてデータを取り込む ▼</td></tr>`;
+            h += `<tr><td colspan="3" style="padding:5px; word-break: break-all; font-family: monospace; font-size: 0.85em;"><a href="${shareUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${shareUrl}</a></td></tr>`;
+            // ▲ ここまで ▲
+
             h += `</table>`;
 
             try {
@@ -657,7 +675,6 @@
             
             const compressed = LZString.compressToBase64(jsonCode);
             const ss1Code = "SS1v1:" + compressed;
-            
             const shareUrl = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
 
             let output = "";
@@ -870,4 +887,5 @@
     </script>
 </body>
 </html>
+
 
