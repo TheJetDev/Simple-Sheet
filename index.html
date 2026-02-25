@@ -10,7 +10,6 @@
     <link rel="icon" href="favicon-96x96.png">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         /* --- 基本スタイル --- */
@@ -153,22 +152,6 @@
             <button class="pro-btn-close" id="btnCloseImp" onclick="closeModal('importModal')">Close</button>
         </div>
     </div>
-
-    <div id="shareModal" class="pro-modal-overlay">
-        <div class="pro-modal-content" style="max-width:400px; text-align:center;">
-            <div class="pro-title" style="margin-bottom:5px;">✅ Link Copied!</div>
-            <p style="font-size:0.9em; color:#666; margin-bottom:15px; font-weight:bold;">
-                The link is in your clipboard.<br>Need the image card too?
-            </p>
-            <img id="previewImg" style="width:100%; max-height:35vh; object-fit:contain; border:1px solid #ccc; border-radius:8px; margin-bottom:15px; background:#f9f9f9;">
-            
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <button onclick="copyImageToClipboard()" style="background:#e67e22; color:#fff; padding:12px; border:none; border-radius:6px; font-weight:bold; font-size:1.1em; cursor:pointer;">🖼️ Copy Image (To Paste)</button>
-                <button onclick="downloadImage()" style="background:#28a745; color:#fff; padding:10px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">⬇️ Save Image</button>
-            </div>
-            <button onclick="closeModal('shareModal')" style="margin-top:15px; background:none; border:none; color:#666; text-decoration:underline; cursor:pointer;">Close</button>
-        </div>
-    </div>
     
     <button class="calc-toggle-btn" onclick="toggleCalc()">🧮</button>
 
@@ -208,7 +191,6 @@
             <div class="utility-bar">
                 <button class="util-btn manual" style="width: auto; background:#17a2b8;" onclick="openManual()" id="btnManual">📖 Manual</button>
                 <button class="util-btn" onclick="clearNumbers()">🧹 <span id="btnClear">Clear</span></button>
-                <button class="util-btn" style="background:#007bff;" onclick="shareAsImage()">📷 <span>Share</span></button>
                 <button class="util-btn" onclick="openImport()">📥 <span id="btnImport">Imp</span></button>
                 <button class="util-btn reset" onclick="fullReset()">🔄 <span id="btnReset">Reset</span></button>
             </div>
@@ -268,9 +250,6 @@
         let isEditMode = false;
         let currentCalc = "0";
         let isLoading = false;
-        
-        let currentShareURL = "";
-        let currentShareBlob = null;
 
         const fullManual = {
             ja: "Simple Sheet について\n\n電卓より整理できて、\nスプレッドシートほど複雑ではありません。\n\nSimple Sheet は、\n計算を整理して残すためのアプリです。\n\n足す、引く、掛ける、割る、\nこの4つの計算で構成します。\n計算の流れはそのまま残ります。\n\n【計算モードの切替】\n🏠 元の数字: 一番上の「元の数字」を使います。\n🔗 チェーン: 一つ上の行の計算結果を使います。\n\nボタンをタップして切り替えます。\n\n【オールコピー (表として使う)】\n計算結果を表としてコピーします。\nExcel や Google スプレッドシートに貼り付けて使えます。\n(JSONコードは含まれません)\n\n【出力 (データとして使う)】\n計算データそのものをコピーします。\nSimple Sheet に貼り付けて、共有・再編集できます。\n\n【読込(インポート)】\nコピーしたテキストを読込画面に貼り付けます。\n\n挨拶文などが混ざっていても、自動でデータだけを抜き出します。\n\n【機能制限について】\n保存とメモ帳の書き込みはPro版の機能です。",
@@ -287,10 +266,10 @@
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", masterLabelStart: "🏠 Base", rowLabel: "Item Name", copyMsg: "Copied!", btnClear: "Clear", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", copyAll: "📋 Copy All", calcTitle: "Calculator", btnSave: "💾 Save", btnDone: "Done",
                   manual: "📖 Manual", btnClose: "Close", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
-                  proTitle: "Get Pro Version 💎", proDesc: "Save, Export, and PC Access are Pro features.\n\nBuy the app to get the URL & Passcode for the Pro Web version!", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?"},
+                  proTitle: "Get Pro Version 💎", proDesc: "Save and Memo editing are Pro features.\n\nBuy the app to get the URL & Passcode for the Pro Web version!", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?"},
             ja: { title: "Simple Sheet", masterLabelName: "タイトル", masterLabelStart: "🏠 元の数字", rowLabel: "項目名", copyMsg: "コピー完了", btnClear: "クリア", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", addRow: "+ 行を追加", copyAll: "📋 オールコピー", calcTitle: "電卓", btnSave: "💾 記憶", btnDone: "完了",
                   manual: "📖 説明書", btnClose: "閉じる", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
-                  proTitle: "Pro版のご案内 💎", proDesc: "保存や出力、PC版の利用はPro版の機能です。\n\nアプリを購入すると、Pro版WebサイトのURLとパスコードが手に入ります！", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？"},
+                  proTitle: "Pro版のご案内 💎", proDesc: "保存やPC版の利用はPro版の機能です。\n\nアプリを購入すると、Pro版WebサイトのURLとパスコードが手に入ります！", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？"},
             zh: { title: "Simple Sheet", masterLabelName: "标题", masterLabelStart: "🏠 初始值", rowLabel: "项目名称", copyMsg: "已复制", btnClear: "清除", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", addRow: "+ 添加行", copyAll: "📋 复制", calcTitle: "计算器", btnSave: "💾 保存", btnDone: "完成",
                   manual: "📖 说明书", btnClose: "关闭", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
                   proTitle: "Pro版功能 💎", proDesc: "购买应用以获取Pro版URL和密码。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?"},
@@ -340,7 +319,7 @@
                         applyData(JSON.parse(decompressed));
                         window.history.replaceState({}, document.title, window.location.pathname);
                     }
-                } catch(e) { addRow(); }
+                } catch(e) { console.error("URL Load Error", e); addRow(); }
             } else {
                 const savedDataStr = localStorage.getItem('simpleSheetSettings_integrated') 
                                   || localStorage.getItem('simpleSheetSettings_final')
@@ -656,6 +635,7 @@
             return res;
         }
 
+        // ▼ 王道の「オールコピー機能」（一切変更なしの安定版） ▼
         async function copyPage() { 
             const title = document.getElementById('masterLabel').value || 'Sheet';
             const baseLabel = languageMap[currentLanguage].masterLabelStart;
@@ -680,9 +660,11 @@
             const memo = document.getElementById('memoArea').value;
             if(memo) {
                 t += `\n[Memo]\n${escapeForExcel(memo)}`;
-                h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word; padding:8px 5px;"><b>[ Memo ]</b><br>${insertAutoBreaks(memo)}</td></tr>`;
+                const htmlMemo = insertAutoBreaks(memo);
+                h += `<tr><td colspan="3" style="background-color:#FFF2CC; vertical-align:top; white-space:normal; word-wrap:break-word; padding:8px 5px;"><b>[ Memo ]</b><br>${htmlMemo}</td></tr>`;
 
-                const matches = memo.match(/(https?:\/\/[^\s]+)/g);
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const matches = memo.match(urlRegex);
                 if(matches) {
                     t += "\n[Links]\n";
                     h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px;">[ Links ]</td></tr>`;
@@ -706,98 +688,6 @@
                 navigator.clipboard.writeText(t);
                 showMsg(languageMap[currentLanguage].copyMsg + " (Text)");
             }
-        }
-
-        // ▼ 最短UXのシェア機能 ▼
-        async function shareAsImage() {
-            if(isLoading) return;
-            showMsg("Generating...");
-
-            const container = document.querySelector('.sheet-container');
-            
-            // 撮影時だけボタン類を無視する（レイアウトは絶対に崩れません）
-            const hideElements = [
-                document.querySelector('.top-controls'),
-                document.querySelector('.storage-bar'),
-                document.getElementById('btnUnlockProContainer'),
-                document.querySelector('.utility-bar'),
-                document.getElementById('addBtn').parentElement 
-            ];
-            document.querySelectorAll('.action-btn').forEach(btn => hideElements.push(btn));
-            hideElements.forEach(el => { if(el) el.setAttribute('data-html2canvas-ignore', 'true'); });
-
-            const titleEl = document.getElementById('title');
-            const originalTitle = titleEl.textContent;
-            const sheetName = document.getElementById('masterLabel').value || languageMap[currentLanguage].title;
-            titleEl.textContent = sheetName;
-
-            try {
-                const bgColor = document.body.classList.contains('pro-mode') ? '#FFF8E1' : '#ffffff';
-                const canvas = await html2canvas(container, { backgroundColor: bgColor, scale: 2 });
-                
-                hideElements.forEach(el => { if(el) el.removeAttribute('data-html2canvas-ignore'); });
-                titleEl.textContent = originalTitle;
-
-                const data = getScreenData();
-                const ss1Code = "SS1v1:" + LZString.compressToBase64(JSON.stringify(data));
-                currentShareURL = "https://thejetdev.github.io/Simple-Sheet/?data=" + encodeURIComponent(ss1Code);
-                const shareText = `【${sheetName}】\n▼ リンクを開いてデータを取り込む ▼\n${currentShareURL}`;
-
-                canvas.toBlob(async (blob) => {
-                    currentShareBlob = blob;
-                    const file = new File([blob], 'simplesheet.png', { type: 'image/png' });
-
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                title: sheetName,
-                                text: shareText,
-                                files: [file]
-                            });
-                        } catch (e) { }
-                    } else {
-                        try {
-                            await navigator.clipboard.writeText(shareText);
-                            showMsg("URL Copied! Paste it anywhere.");
-                        } catch(e) {
-                            showMsg("Failed to auto-copy URL.");
-                        }
-                        
-                        document.getElementById('previewImg').src = URL.createObjectURL(blob);
-                        document.getElementById('shareModal').classList.add('active');
-                    }
-                }, 'image/png');
-
-            } catch (err) {
-                console.error(err);
-                hideElements.forEach(el => { if(el) el.removeAttribute('data-html2canvas-ignore'); });
-                titleEl.textContent = originalTitle;
-                showMsg("Error");
-            }
-        }
-
-        // ▼ モーダル内のボタン用機能 ▼
-        async function copyImageToClipboard() {
-            if (!currentShareBlob) return;
-            try {
-                const item = new ClipboardItem({ 'image/png': currentShareBlob });
-                await navigator.clipboard.write([item]);
-                showMsg("Image Copied! Paste it on Reddit/Email.");
-            } catch(err) {
-                showMsg("Browser cannot copy image. Use 'Save'.");
-            }
-        }
-
-        function downloadImage() {
-            if(!currentShareBlob) return;
-            const url = URL.createObjectURL(currentShareBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'SimpleSheetCard.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         function executeImport() {
