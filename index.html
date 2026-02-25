@@ -706,6 +706,26 @@
             }
 
             try {
+                // ▼ 修正：SS1v1コードだけをピンポイントで抜き出して解読する！ ▼
+                const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=%]+/);
+                if (ss1Match) {
+                    let extracted = ss1Match[0];
+                    // 抜き出した部分だけを安全にURLデコードする
+                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
+                    
+                    if (extracted.startsWith("SS1v1:")) {
+                        const compressed = extracted.substring(6); // "SS1v1:" を削る
+                        const decompressed = LZString.decompressFromBase64(compressed);
+                        if (decompressed) {
+                            applyData(JSON.parse(decompressed));
+                            showMsg(languageMap[currentLanguage].msgLoad);
+                            closeModal('importModal');
+                            return; // 成功したらここで終了
+                        }
+                    }
+                }
+
+            try {
                 // 1. 基本的な浄化（スマホの不可視ゴミを徹底排除）
                 let cleanText = rawText
                     .replace(/\u00A0/g, " ")
@@ -887,5 +907,6 @@
     </script>
 </body>
 </html>
+
 
 
