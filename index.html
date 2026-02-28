@@ -262,7 +262,6 @@
             de: "Über Simple Sheet\n\nÜbersichtlicher als ein Taschenrechner,\nEinfacher als eine Tabelle.\n\nSimple Sheet organisiert Berechnungen.\n\nAddieren, Subtrahieren, Multiplizieren, Dividieren.\nDer Weg bleibt erhalten.\n\n【Moduswechsel】\n🏠 Basiswert: Verwendet den oberen Wert.\n🔗 Kette: Verwendet das vorherige Ergebnis.\n\n【Alles Kopieren (Teilen & Speichern)】\nKopiert Ergebnisse, Notizen und eine Wiederherstellungs-URL.\nZum Teilen in sozialen Medien oder Einfügen in Excel.\n*Jeder kann dasselbe Blatt durch Tippen auf die URL öffnen.\n\n【Importieren】\nMeist reicht das Öffnen der geteilten URL zur Wiederherstellung.\nSie können auch kopierten Text hier einfügen.\n\n【Haftungsausschluss】\n*Der Inhalt des Notizfeldes wird vom Autor bereitgestellt. Bitte nutzen Sie externe Links nach eigenem Ermessen.\n\n【Funktionseinschränkungen】\nDas Speichern und das Schreiben von Notizen sind Funktionen der Pro-Version."
         };
 
-        // ▼ languageMapからClearを削除し、manualをbtnHelpに変更 ▼
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", masterLabelStart: "🏠 Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", copyAll: "📋 Copy All", calcTitle: "Calculator", btnSave: "💾 Save", btnDone: "Done",
                   btnHelp: "❓ Help", btnClose: "Close", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
@@ -395,7 +394,6 @@
             document.getElementById('btnClosePro').textContent = d.btnClose;
             document.getElementById('btnLinkPro').textContent = d.btnProLink;
             
-            // ▼ Manual から Help に変更した部分を反映 ▼
             document.getElementById('manTitle').textContent = d.btnHelp;
             document.getElementById('btnManual').textContent = d.btnHelp;
             
@@ -600,13 +598,13 @@
                 </div>
                 <div class="result-area">
                     <div class="result-text">0</div>
-                    <div style="display:flex; gap:6px; align-items:center;">
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <button class="action-btn" style="font-size:1.2em; padding:0;" onclick="moveRow(this, -1)">▲</button>
-                            <button class="action-btn" style="font-size:1.2em; padding:0;" onclick="moveRow(this, 1)">▼</button>
-                        </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
                         <button class="action-btn" onclick="copyRowVal(this)">📋</button>
                         <button class="action-btn" onclick="this.closest('.row').remove();updateDisplay()">🗑️</button>
+                        <div style="display:flex; gap:4px; border-left:2px solid #eee; padding-left:8px;">
+                            <button class="action-btn" style="font-size:1.3em; padding:0 4px;" onclick="moveRow(this, -1)">▲</button>
+                            <button class="action-btn" style="font-size:1.3em; padding:0 4px;" onclick="moveRow(this, 1)">▼</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -621,7 +619,8 @@
             el.textContent = ops[(ops.indexOf(currentOp) + d + 4) % 4]; 
             updateDisplay(); 
         }
-　　　　　// ▼ 行を上下に移動させる機能 ▼
+
+        // ▼ 行を上下に移動させる機能 ▼
         function moveRow(btn, direction) {
             const row = btn.closest('.row');
             const container = document.getElementById('rows-container');
@@ -636,6 +635,7 @@
             // 移動したら全自動で再計算＆保存
             updateDisplay();
         }
+
         function copyRowVal(btn) { 
             navigator.clipboard.writeText(btn.closest('.result-area').querySelector('.result-text').textContent.replace(/,/g,'')); 
             showMsg(languageMap[currentLanguage].copyMsg); 
@@ -850,5 +850,3 @@
     </script>
 </body>
 </html>
-
-
