@@ -600,7 +600,11 @@
                 </div>
                 <div class="result-area">
                     <div class="result-text">0</div>
-                    <div style="display:flex; gap:10px;">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <button class="action-btn" style="font-size:1.2em; padding:0;" onclick="moveRow(this, -1)">▲</button>
+                            <button class="action-btn" style="font-size:1.2em; padding:0;" onclick="moveRow(this, 1)">▼</button>
+                        </div>
                         <button class="action-btn" onclick="copyRowVal(this)">📋</button>
                         <button class="action-btn" onclick="this.closest('.row').remove();updateDisplay()">🗑️</button>
                     </div>
@@ -617,7 +621,21 @@
             el.textContent = ops[(ops.indexOf(currentOp) + d + 4) % 4]; 
             updateDisplay(); 
         }
-
+　　　　　// ▼ 行を上下に移動させる機能 ▼
+        function moveRow(btn, direction) {
+            const row = btn.closest('.row');
+            const container = document.getElementById('rows-container');
+            
+            if (direction === -1 && row.previousElementSibling) {
+                // 上に移動（一つ上の要素の前に挿入）
+                container.insertBefore(row, row.previousElementSibling);
+            } else if (direction === 1 && row.nextElementSibling) {
+                // 下に移動（一つ下の要素の次に挿入）
+                container.insertBefore(row.nextElementSibling, row);
+            }
+            // 移動したら全自動で再計算＆保存
+            updateDisplay();
+        }
         function copyRowVal(btn) { 
             navigator.clipboard.writeText(btn.closest('.result-area').querySelector('.result-text').textContent.replace(/,/g,'')); 
             showMsg(languageMap[currentLanguage].copyMsg); 
@@ -832,4 +850,5 @@
     </script>
 </body>
 </html>
+
 
