@@ -1,4 +1,4 @@
-ｖ<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -242,13 +242,46 @@
     </div>
 
     <script>
-        // --- 統合システム設定 ---
-        const PASS_REAL = "8392"; 
-        let isPro = false;
-        let currentLanguage = 'en'; 
-        let isEditMode = false;
-        let currentCalc = "0";
-        let isLoading = false;
+        
+        function generateCheckCode(baseStr) {
+            let hash = 0;
+            const secretSalt = "SimpleSheetPro_2026"; 
+            const str = baseStr + secretSalt;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash; 
+            }
+            // ハッシュ値を絶対値の16進数（4文字）に変換
+            return Math.abs(hash).toString(16).substring(0, 4).toUpperCase().padStart(4, '0');
+        }
+
+        function checkPasscode() {
+            // 入力された文字を大文字にし、空白を消す
+            const val = document.getElementById("unlockPasscode").value.trim().toUpperCase();
+            
+            // 8桁の英数字かどうかをチェック
+            if (val.length === 8 && /^[A-Z0-9]{8}$/.test(val)) {
+                
+                const basePart = val.substring(0, 4); // 前半4文字
+                const checkPart = val.substring(4, 8); // 後半4文字
+                
+                // 前半4文字から正しい後半4文字を計算して、一致するか確認！
+                if (checkPart === generateCheckCode(basePart)) {
+                    localStorage.setItem("proWebUnlocked", "true");
+                    isPro = true;
+                    document.body.classList.add("pro-mode");
+                    closeModal('unlockModal');
+                    applyModeUI();
+                    setLanguage(currentLanguage);
+                    renderSaveList();
+                    showMsg("Pro Unlocked! 💎");
+                    return; // 成功したらここで終了
+                }
+            }
+            
+            // 一致しなかった、または8桁じゃなかった場合
+            showMsg("Invalid Passcode");
+        }
 
         // ▼ マニュアルのベース部分（共通のテキスト） ▼
         const manualBase = {
@@ -879,3 +912,4 @@
     </script>
 </body>
 </html>
+
