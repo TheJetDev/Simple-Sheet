@@ -35,15 +35,13 @@
 
         .row { display: flex; margin-bottom: 12px; padding: 12px; border: 1px solid #ccc; border-radius: 10px; background-color: #fff; gap: 8px; }
         
-        /* ★追加：ドラッグハンドルのスタイル */
-        .drag-handle { font-size: 2em; color: #aaa; cursor: grab; padding: 0 5px; user-select: none; display: flex; align-items: center; }
+        /* ★ドラッグハンドルのスタイル（右側に置くので少しマージンを調整） */
+        .drag-handle { font-size: 2.2em; color: #aaa; cursor: grab; padding: 0 0 0 4px; user-select: none; display: flex; align-items: center; border-left: 2px solid #eee; margin-left: 4px; }
         .drag-handle:active { cursor: grabbing; color: #007bff; }
-        .input-wrapper { display: flex; align-items: center; gap: 8px; }
 
         @media screen and (min-width: 1001px) {
             .row { flex-direction: row; align-items: center; justify-content: space-between; }
-            .input-wrapper { flex: 1.5; }
-            .text-label-input { width: 100%; }
+            .text-label-input { flex: 1.5; }
             .calc-area { flex: 1; justify-content: center; }
             .result-area { flex: 2; justify-content: flex-end; background: #f8f9fa; padding: 5px 10px; border-radius: 6px; }
             .result-text { font-size: 1.6em; }
@@ -55,8 +53,7 @@
             .sheet-container { width: 100%; }
             .top-controls { flex-wrap: wrap; }
             .row { flex-direction: column !important; align-items: stretch !important; }
-            .input-wrapper { width: 100%; margin-bottom: 5px; }
-            .text-label-input { width: 100%; font-size: 1.1em; padding: 10px; }
+            .text-label-input { width: 100% !important; font-size: 1.1em; padding: 10px; margin-bottom: 5px; }
             .calc-area { width: 100% !important; justify-content: center !important; padding: 10px 0; border-top: 1px dashed #eee; border-bottom: 1px dashed #eee; }
             .result-area { width: 100% !important; justify-content: space-between !important; background: #eefbff; padding: 12px; border-radius: 8px; }
             .result-text { font-size: 2.2em; word-break: break-all; }
@@ -392,13 +389,12 @@
             if(isPro) renderSaveList();
             updateMemoLinks();
             
-            // ★追加：ドラッグ＆ドロップで並べ替えができるようにする設定
             const rowsContainer = document.getElementById('rows-container');
             new Sortable(rowsContainer, {
-                handle: '.drag-handle', // ≡ を持った時だけ動かせる
+                handle: '.drag-handle', 
                 animation: 150,
                 onEnd: function() {
-                    updateDisplay(); // 移動が終わったら再計算
+                    updateDisplay();
                 }
             });
         }
@@ -659,12 +655,9 @@
             const isChain = s ? (s.baseMode==='chain') : true; 
             const val = s ? s.multiplier : '';
 
-            // ★変更：入力欄の左に「≡」を追加し、右端の「▲▼」を削除しました！
+            // ★変更：入力欄はそのままにして、右端のゴミ箱の隣に「≡」を配置しました！
             div.innerHTML = `
-                <div class="input-wrapper">
-                    <div class="drag-handle" title="Drag to reorder">≡</div>
-                    <input type="text" class="text-label-input" placeholder="${ph}" value="${s?s.label:''}" oninput="saveSettings()">
-                </div>
+                <input type="text" class="text-label-input" placeholder="${ph}" value="${s?s.label:''}" oninput="saveSettings()">
                 <div class="calc-area">
                     <div id="base-${id}" class="base-toggle ${isChain?'chain':''}" onclick="this.classList.toggle('chain');this.textContent=this.classList.contains('chain')?'🔗':'🏠';updateDisplay()">
                         ${isChain?'🔗':'🏠'}
@@ -682,6 +675,7 @@
                     <div style="display:flex; gap:8px; align-items:center;">
                         <button class="action-btn" onclick="copyRowVal(this)">📋</button>
                         <button class="action-btn" onclick="this.closest('.row').remove();updateDisplay()">🗑️</button>
+                        <div class="drag-handle" title="Drag to reorder">≡</div>
                     </div>
                 </div>
             `;
