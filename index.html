@@ -121,7 +121,7 @@
 <body onload="init()">
 
     <div id="app-banner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 30px; z-index: 9999; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-family: sans-serif; width: 90%; max-width: 400px; justify-content: space-between; align-items: center;">
-        <span style="font-size: 14px; font-weight: bold;">📱 アプリで快適に開く</span>
+        <span id="banner-text-span" style="font-size: 14px; font-weight: bold;">📱 アプリで快適に開く</span>
         <div>
             <a id="app-intent-link" href="#" style="background: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; margin-right: 10px;">開く</a>
             <button onclick="closeAppBanner()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✖</button>
@@ -137,20 +137,92 @@
 
         var ua = navigator.userAgent;
         var isAndroid = /android/i.test(ua);
-        
-        // ① アプリ内ブラウザかどうか
         var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
-        
-        // ② 外部サイト（SNSなど）からリンクを踏んできたかどうか
-        // ※ referrer（紹介元）が存在し、かつ自分のサイトではない場合
         var isFromOutside = document.referrer && document.referrer.indexOf(location.hostname) === -1;
 
         var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
         var now = new Date().getTime();
-        var isBannerHidden = hideUntil && now < parseInt(hideUntil);
+        // GPT先生推奨の「10進数指定」も入れました
+        var isBannerHidden = hideUntil && now < parseInt(hideUntil, 10);
 
-        // 💡 Androidであり、非表示設定期間外であり、かつ「WebView または 外部からの訪問」の時だけ出す！
         if (isAndroid && !isBannerHidden && (isWebView || isFromOutside)) {
+            // 💡 バナー専用の多言語辞書
+            var bannerLangMap = {
+                en: { t: "📱 Open in App", b: "Open" },
+                ja: { t: "📱 アプリで快適に開く", b: "開く" },
+                zh: { t: "📱 在应用中打开", b: "打开" },
+                ko: { t: "📱 앱에서 열기", b: "열기" },
+                es: { t: "📱 Abrir en la app", b: "Abrir" },
+                pt: { t: "📱 Abrir no app", b: "Abrir" },
+                fr: { t: "📱 Ouvrir dans l'appli", b: "Ouvrir" },
+                ru: { t: "📱 Открыть в приложении", b: "Открыть" },
+                de: { t: "📱 In der App öffnen", b: "Öffnen" }
+            };
+
+            // ユーザーが設定した言語（なければスマホの言語）を取得
+            var savedLang = localStorage.getItem('simpleSheetLang_integrated') || navigator.language.slice(0, 2);
+            var langData = bannerLangMap[savedLang] || bannerLangMap['en'];
+
+            // HTMLの文字をその言語に書き換える
+            document.getElementById('banner-text-span').textContent = langData.t;
+            document.getElementById('app-intent-link').textContent = langData.b;
+
+            // URL生成と表示
+            var safePath = location.host + location.pathname + location.search;
+            var fallbackUrl = encodeURIComponent("https://play.google.com/store/apps/details?id=jetdev.simplesheet");
+            var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + fallbackUrl + ";end;";
+
+            document.getElementById('app-intent-link').href = intentUrl;
+            document.getElementById('app-banner').style.display = 'flex';
+        }
+    </script><div id="app-banner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 30px; z-index: 9999; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-family: sans-serif; width: 90%; max-width: 400px; justify-content: space-between; align-items: center;">
+        <span id="banner-text-span" style="font-size: 14px; font-weight: bold;">📱 アプリで快適に開く</span>
+        <div>
+            <a id="app-intent-link" href="#" style="background: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; margin-right: 10px;">開く</a>
+            <button onclick="closeAppBanner()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✖</button>
+        </div>
+    </div>
+
+    <script>
+        function closeAppBanner() {
+            document.getElementById('app-banner').style.display = 'none';
+            var expireTime = new Date().getTime() + 604800000; // 7日間
+            localStorage.setItem('hideSimpleSheetBanner', expireTime.toString());
+        }
+
+        var ua = navigator.userAgent;
+        var isAndroid = /android/i.test(ua);
+        var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
+        var isFromOutside = document.referrer && document.referrer.indexOf(location.hostname) === -1;
+
+        var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
+        var now = new Date().getTime();
+        // GPT先生推奨の「10進数指定」も入れました
+        var isBannerHidden = hideUntil && now < parseInt(hideUntil, 10);
+
+        if (isAndroid && !isBannerHidden && (isWebView || isFromOutside)) {
+            // 💡 バナー専用の多言語辞書
+            var bannerLangMap = {
+                en: { t: "📱 Open in App", b: "Open" },
+                ja: { t: "📱 アプリで快適に開く", b: "開く" },
+                zh: { t: "📱 在应用中打开", b: "打开" },
+                ko: { t: "📱 앱에서 열기", b: "열기" },
+                es: { t: "📱 Abrir en la app", b: "Abrir" },
+                pt: { t: "📱 Abrir no app", b: "Abrir" },
+                fr: { t: "📱 Ouvrir dans l'appli", b: "Ouvrir" },
+                ru: { t: "📱 Открыть в приложении", b: "Открыть" },
+                de: { t: "📱 In der App öffnen", b: "Öffnen" }
+            };
+
+            // ユーザーが設定した言語（なければスマホの言語）を取得
+            var savedLang = localStorage.getItem('simpleSheetLang_integrated') || navigator.language.slice(0, 2);
+            var langData = bannerLangMap[savedLang] || bannerLangMap['en'];
+
+            // HTMLの文字をその言語に書き換える
+            document.getElementById('banner-text-span').textContent = langData.t;
+            document.getElementById('app-intent-link').textContent = langData.b;
+
+            // URL生成と表示
             var safePath = location.host + location.pathname + location.search;
             var fallbackUrl = encodeURIComponent("https://play.google.com/store/apps/details?id=jetdev.simplesheet");
             var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + fallbackUrl + ";end;";
@@ -945,6 +1017,7 @@
     </script>
 </body>
 </html>
+
 
 
 
