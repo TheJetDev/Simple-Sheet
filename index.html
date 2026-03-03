@@ -149,9 +149,10 @@
 
         // 💡 Android ＆ アプリ内ブラウザ ＆ 非表示期間外 の時だけ表示！
         if (isAndroid && isWebView && !isBannerHidden) {
-            // 💡 余計なプロトコル混入を防ぐ安全なURL生成
             var safePath = location.host + location.pathname + location.search;
-            var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;end;";
+            // 💡 完璧なフォールバック：アプリが無ければPlayストアへ誘導！
+            var fallbackUrl = encodeURIComponent("https://play.google.com/store/apps/details?id=jetdev.simplesheet");
+            var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + fallbackUrl + ";end;";
 
             document.getElementById('app-intent-link').href = intentUrl;
             document.getElementById('app-banner').style.display = 'flex';
@@ -943,5 +944,6 @@
     </script>
 </body>
 </html>
+
 
 
