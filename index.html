@@ -129,28 +129,29 @@
     </div>
 
     <script>
-        // 💡 ✖を押した時間をlocalStorageに記録し、7日間非表示にする関数
         function closeAppBanner() {
             document.getElementById('app-banner').style.display = 'none';
-            // 現在の時刻 ＋ 7日間（7 * 24 * 60 * 60 * 1000 ミリ秒）
-            var expireTime = new Date().getTime() + 604800000;
+            var expireTime = new Date().getTime() + 604800000; // 7日間
             localStorage.setItem('hideSimpleSheetBanner', expireTime.toString());
         }
 
         var ua = navigator.userAgent;
         var isAndroid = /android/i.test(ua);
-        // 💡 アプリ内ブラウザ（WebViewや各種SNS）だけを精密に狙い撃ち
+        
+        // ① アプリ内ブラウザかどうか
         var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
         
-        // localStorageから非表示期限を取得して判定
+        // ② 外部サイト（SNSなど）からリンクを踏んできたかどうか
+        // ※ referrer（紹介元）が存在し、かつ自分のサイトではない場合
+        var isFromOutside = document.referrer && document.referrer.indexOf(location.hostname) === -1;
+
         var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
         var now = new Date().getTime();
         var isBannerHidden = hideUntil && now < parseInt(hideUntil);
 
-        // 💡 Android ＆ アプリ内ブラウザ ＆ 非表示期間外 の時だけ表示！
-        if (isAndroid && isWebView && !isBannerHidden) {
+        // 💡 Androidであり、非表示設定期間外であり、かつ「WebView または 外部からの訪問」の時だけ出す！
+        if (isAndroid && !isBannerHidden && (isWebView || isFromOutside)) {
             var safePath = location.host + location.pathname + location.search;
-            // 💡 完璧なフォールバック：アプリが無ければPlayストアへ誘導！
             var fallbackUrl = encodeURIComponent("https://play.google.com/store/apps/details?id=jetdev.simplesheet");
             var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + fallbackUrl + ";end;";
 
@@ -944,6 +945,7 @@
     </script>
 </body>
 </html>
+
 
 
 
