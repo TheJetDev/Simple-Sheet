@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "jetdev.simplesheet",
+      "sha256_cert_fingerprints": [
+        "7E:3D:C2:BB:54:CD:D8:A5:2B:F1:58:A2:65:DC:92:26:DE:28:76:B1:A9:CE:E2:8D:BF:B8:0E:F3:BA:D0:36:64"
+      ]
+    }
+  }
+]
