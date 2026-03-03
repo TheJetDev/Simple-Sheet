@@ -124,25 +124,35 @@
         <span style="font-size: 14px; font-weight: bold;">📱 アプリで快適に開く</span>
         <div>
             <a id="app-intent-link" href="#" style="background: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; margin-right: 10px;">開く</a>
-            <button onclick="document.getElementById('app-banner').style.display='none';" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✖</button>
+            <button onclick="closeAppBanner()" style="background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; padding: 0;">✖</button>
         </div>
     </div>
 
     <script>
-        // スマホがAndroidかどうかを判定
-        var isAndroid = /android/i.test(navigator.userAgent);
+        // 💡 ✖を押した時間をlocalStorageに記録し、7日間非表示にする関数
+        function closeAppBanner() {
+            document.getElementById('app-banner').style.display = 'none';
+            // 現在の時刻 ＋ 7日間（7 * 24 * 60 * 60 * 1000 ミリ秒）
+            var expireTime = new Date().getTime() + 604800000;
+            localStorage.setItem('hideSimpleSheetBanner', expireTime.toString());
+        }
+
+        var ua = navigator.userAgent;
+        var isAndroid = /android/i.test(ua);
+        // 💡 アプリ内ブラウザ（WebViewや各種SNS）だけを精密に狙い撃ち
+        var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
         
-        if (isAndroid) {
-            // 現在のURL（シェアされた計算データ "?data=..." を含む）を取得
-            var currentUrl = window.location.href;
-            
-            // "https://" の部分を削る
-            var domainAndPath = currentUrl.replace(/^https?:\/\//, '');
+        // localStorageから非表示期限を取得して判定
+        var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
+        var now = new Date().getTime();
+        var isBannerHidden = hideUntil && now < parseInt(hideUntil);
 
-            // 魔法の脱出リンク（Intent URI）を作成！
-            var intentUrl = "intent://" + domainAndPath + "#Intent;scheme=https;package=jetdev.simplesheet;end;";
+        // 💡 Android ＆ アプリ内ブラウザ ＆ 非表示期間外 の時だけ表示！
+        if (isAndroid && isWebView && !isBannerHidden) {
+            // 💡 余計なプロトコル混入を防ぐ安全なURL生成
+            var safePath = location.host + location.pathname + location.search;
+            var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;end;";
 
-            // リンクをボタンにセットして、バナーを表示する
             document.getElementById('app-intent-link').href = intentUrl;
             document.getElementById('app-banner').style.display = 'flex';
         }
@@ -933,4 +943,5 @@
     </script>
 </body>
 </html>
+
 
