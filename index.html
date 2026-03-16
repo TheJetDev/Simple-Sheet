@@ -117,7 +117,7 @@
     </style>
     <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDhzNII5lGP3hQj7Z3r8WKs2g6flk6WbqU",
@@ -132,6 +132,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // 読み込み用
   window.getFirebaseData = async (id) => {
     try {
       const docRef = doc(db, "shares", id);
@@ -139,6 +140,17 @@
       return docSnap.exists() ? docSnap.data() : null;
     } catch (e) {
       console.error("Firebase Error:", e);
+      return null;
+    }
+  };
+
+  // ★ 新規追加：書き込み（保存）用
+  window.saveFirebaseData = async (dataMap) => {
+    try {
+      const docRef = await addDoc(collection(db, "shares"), dataMap);
+      return docRef.id; // 保存して短いIDを返す
+    } catch (e) {
+      console.error("Firebase Add Error:", e);
       return null;
     }
   };
