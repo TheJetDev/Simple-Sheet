@@ -115,7 +115,6 @@
         .text-area-import { width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; background: #f9f9f9; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9em; color: #333; resize: none; }
         .title-pro-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #1a237e 0%, #000 100%); color: white; text-decoration: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 3px 6px rgba(0,0,0,0.15); margin: 0 auto 15px auto; transition: transform 0.2s; border:none; cursor:pointer; }
         
-        /* ★ QRコード印刷用CSS：印刷時にQRコード以外をすべて隠す魔法 */
         @media print {
             body * { visibility: hidden; }
             #qrModal, #qrModal * { visibility: visible; }
@@ -410,43 +409,44 @@
             de: "【Pro-Version】\nAlle Funktionen freigeschaltet."
         };
 
+        // ★ shareMoreを「+{N}」に統一し、msgExpire30（30日期限の注意書き）を各言語に追加しました！
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Import", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
                   btnHelp: "❓ Help", btnClose: "Close", btnPrint: "Print", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
                   proTitle: "Get Pro Version 💎", proDesc: "Memo editing and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
-                  shareMore: "...and {N} more", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽"},
+                  shareMore: "+{N}", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽", msgExpire30: "*This link is valid for 30 days."},
             ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", confirmOverwrite: "無料版は1件のみ保存可能です。上書きしますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
                   btnHelp: "❓ ヘルプ", btnClose: "閉じる", btnPrint: "印刷", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
                   proTitle: "Pro版のご案内 💎", proDesc: "メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
-                  shareMore: "...他 {N} 項目", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽"},
+                  shareMore: "+{N}", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽", msgExpire30: "※リンクの有効期限は30日間です"},
             zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", confirmOverwrite: "免费版只能保存1条。是否覆盖？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
                   btnHelp: "❓ 帮助", btnClose: "关闭", btnPrint: "打印", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
                   proTitle: "Pro版功能 💎", proDesc: "编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
-                  shareMore: "...及其他 {N} 项", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽"},
+                  shareMore: "+{N}", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽", msgExpire30: "*此链接有效期为30天。"},
             ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", confirmOverwrite: "무료 버전은 1개만 저장 가능합니다. 덮어쓰시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
                   btnHelp: "❓ 도움말", btnClose: "닫기", btnPrint: "인쇄", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
                   proTitle: "Pro 기능 💎", proDesc: "메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
-                  shareMore: "...외 {N}개 항목", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽"},
+                  shareMore: "+{N}", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽", msgExpire30: "*이 링크는 30일 동안 유효합니다."},
             es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
                   btnHelp: "❓ Ayuda", btnClose: "Cerrar", btnPrint: "Imprimir", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
                   proTitle: "Función Pro 💎", proDesc: "Editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
-                  shareMore: "...y {N} más", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽"},
+                  shareMore: "+{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽", msgExpire30: "*Este enlace es válido por 30 días."},
             pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
                   btnHelp: "❓ Ajuda", btnClose: "Fechar", btnPrint: "Imprimir", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
                   proTitle: "Recurso Pro 💎", proDesc: "Editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
-                  shareMore: "...e mais {N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽"},
+                  shareMore: "+{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽", msgExpire30: "*Este link é válido por 30 dias."},
             fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Importer", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
                   btnHelp: "❓ Aide", btnClose: "Fermer", btnPrint: "Imprimer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
                   proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
-                  shareMore: "...et {N} de plus", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽"},
+                  shareMore: "+{N}", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽", msgExpire30: "*Ce lien est valide pendant 30 jours."},
             ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Импорт", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
                   btnHelp: "❓ Помощь", btnClose: "Закрыть", btnPrint: "Печать", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
                   proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
-                  shareMore: "...и еще {N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽"},
+                  shareMore: "+{N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽", msgExpire30: "*Эта ссылка действительна 30 дней."},
             de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
                   btnHelp: "❓ Hilfe", btnClose: "Schließen", btnPrint: "Drucken", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
                   proTitle: "Pro-Funktion 💎", proDesc: "Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
-                  shareMore: "...und {N} weitere", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽"}
+                  shareMore: "+{N}", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽", msgExpire30: "*Dieser Link ist 30 Tage gültig."}
         };
 
         async function init() {
@@ -474,7 +474,6 @@
                 if (data) {
                     const createdAt = data.createdAt || 0;
                     const now = Date.now();
-                    // ★ 30日間に戻しました！（30日 × 24時間 × 60分 × 60秒 × 1000ミリ秒）
                     const timeLimit = 30 * 24 * 60 * 60 * 1000;
 
                     if (createdAt > 0 && (now - createdAt > timeLimit)) {
@@ -619,7 +618,8 @@
                 }
             }
 
-            text += `\n${d.editLinkText}\n${shareUrl}`;
+            // ★ 最後に 30日の有効期限案内 (msgExpire30) を追加するよう修正！
+            text += `\n${d.editLinkText}\n${shareUrl}\n${d.msgExpire30}`;
 
             try {
                 await navigator.clipboard.writeText(text);
