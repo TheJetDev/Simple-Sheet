@@ -133,27 +133,19 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
-      // 読み込み用
       window.getFirebaseData = async (id) => {
         try {
           const docRef = doc(db, "shares", id);
           const docSnap = await getDoc(docRef);
           return docSnap.exists() ? docSnap.data() : null;
-        } catch (e) {
-          console.error("Firebase Error:", e);
-          return null;
-        }
+        } catch (e) { return null; }
       };
 
-      // 保存用（短いURLを作成するため）
       window.saveFirebaseData = async (dataMap) => {
         try {
           const docRef = await addDoc(collection(db, "shares"), dataMap);
           return docRef.id;
-        } catch (e) {
-          console.error("Firebase Add Error:", e);
-          return null;
-        }
+        } catch (e) { return null; }
       };
     </script>
 </head>
@@ -171,39 +163,46 @@
     <script>
         function closeAppBanner() {
             document.getElementById('app-banner').style.display = 'none';
-            var expireTime = new Date().getTime() + 604800000; 
-            localStorage.setItem('hideSimpleSheetBanner', expireTime.toString());
+            localStorage.setItem('hideSimpleSheetBanner', (new Date().getTime() + 604800000).toString());
         }
+        
         var ua = navigator.userAgent;
         var isAndroid = /android/i.test(ua);
         var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
         var isFromOutside = document.referrer && document.referrer.indexOf(location.hostname) === -1;
         var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
-        var now = new Date().getTime();
-        var isBannerHidden = hideUntil && now < parseInt(hideUntil, 10);
+        var isBannerHidden = hideUntil && new Date().getTime() < parseInt(hideUntil, 10);
 
         var params = new URLSearchParams(window.location.search);
         var forceApp = params.get('open') === 'app';
 
-        if (isAndroid && (forceApp || (!isBannerHidden && (isWebView || isFromOutside)))) {
-            var bannerLangMap = {
-                en: { t: "📱 Open in App", b: "Open" }, ja: { t: "📱 アプリで快適に開く", b: "開く" },
-                zh: { t: "📱 在应用中打开", b: "打开" }, ko: { t: "📱 앱에서 열기", b: "열기" },
-                es: { t: "📱 Abrir en la app", b: "Abrir" }, pt: { t: "📱 Abrir no app", b: "Abrir" },
-                fr: { t: "📱 Ouvrir dans l'appli", b: "Ouvrir" }, ru: { t: "📱 Открыть в приложении", b: "Открыть" },
-                de: { t: "📱 In der App öffnen", b: "Öffnen" }
-            };
-            var savedLang = localStorage.getItem('simpleSheetLang_integrated') || navigator.language.slice(0, 2);
-            var langData = bannerLangMap[savedLang] || bannerLangMap['en'];
-            document.getElementById('banner-text-span').textContent = langData.t;
-            document.getElementById('app-intent-link').textContent = langData.b;
-            var safePath = location.host + location.pathname + location.search;
-            var fallbackUrl = encodeURIComponent("https://play.google.com/store/apps/details?id=jetdev.simplesheet");
-            var intentUrl = "intent://" + safePath + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + fallbackUrl + ";end;";
-            document.getElementById('app-intent-link').href = intentUrl;
-            document.getElementById('app-banner').style.display = 'flex';
+        // ★アプリを持っている人は自動起動、持っていない人はWEBに留まる（フォールバックを現在のURLにする）神ロジック
+        if (isAndroid) {
+            var currentUrlNoOpen = location.href.replace(/&?open=app/, '');
+            var storeUrl = "https://play.google.com/store/apps/details?id=jetdev.simplesheet";
+            
+            var autoIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(currentUrlNoOpen) + ";end;";
+            var bannerIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(storeUrl) + ";end;";
 
-            if (forceApp) { window.location.href = intentUrl; }
+            if (!isBannerHidden && (isWebView || isFromOutside || forceApp)) {
+                var bannerLangMap = {
+                    en: { t: "📱 Open in App", b: "Open" }, ja: { t: "📱 アプリで快適に開く", b: "開く" },
+                    zh: { t: "📱 在应用中打开", b: "打开" }, ko: { t: "📱 앱에서 열기", b: "열기" },
+                    es: { t: "📱 Abrir en la app", b: "Abrir" }, pt: { t: "📱 Abrir no app", b: "Abrir" },
+                    fr: { t: "📱 Ouvrir dans l'appli", b: "Ouvrir" }, ru: { t: "📱 Открыть в приложении", b: "Открыть" },
+                    de: { t: "📱 In der App öffnen", b: "Öffnen" }
+                };
+                var savedLang = localStorage.getItem('simpleSheetLang_integrated') || navigator.language.slice(0, 2);
+                var langData = bannerLangMap[savedLang] || bannerLangMap['en'];
+                document.getElementById('banner-text-span').textContent = langData.t;
+                document.getElementById('app-intent-link').textContent = langData.b;
+                document.getElementById('app-intent-link').href = bannerIntentUrl;
+                document.getElementById('app-banner').style.display = 'flex';
+            }
+
+            if (forceApp) {
+                window.location.replace(autoIntentUrl);
+            }
         }
     </script>
     <div id="saveMessage"></div>
@@ -371,28 +370,29 @@
             return Math.abs(hash).toString(16).substring(0, 4).toUpperCase().padStart(4, '0');
         }
 
+        // ★ Androidと共通化されたマニュアル文（Copy Allは無期限・無料版の保存は1件まで）
         const manualBase = {
-            ja: "Simple Sheet の使い方\n\n電卓より整理できて、\nスプレッドシートほど複雑ではありません。\n\nSimple Sheet は、\n計算の「流れ」を残せるアプリです。\n\n足す、引く、掛ける、割る。\nこの4つの基本計算だけで使えます。\n\n【計算モード】\n\nボタンをタップして、\n計算の基準を切り替えます。\n\n🏠 元の数字\n一番上の「基準」の数字を使って計算します。\n\n🔗 チェーン\n一つ上の行の結果を引き継いで計算します。\n\n【共有と出力】\n\nSimple Sheet では、\n計算をそのまま人に送ることができます。\n\n📱 Share（シェア）\n人に送る・一緒に見る\n\nLINE、メール、SNSなどで\n計算を共有する時に使います。\n\nShareを押すと、次の2つがコピーされます。\n・途中経過を 5行にまとめたテキスト\n・計算を復元できる URL\n\n相手は URLをタップするだけで、\n同じ計算シートを開くことができます。\n内容を確認したり、\n自分用に編集して使うこともできます。\n\n📋 Copy All（オールコピー）\n保存・AI・データ用 ※Pro版\n\nすべての計算データを\n省略せずにコピーします。\n\nコピーされる内容\n・すべての計算結果\n・メモ\n・復元URL\n\nExcelに貼り付けると、\n自動で3列の表になります。\nChatGPTなどのAIに\n計算を読み込ませる時にも使えます。\n\n【読込（インポート）】\n\n通常は\n共有されたURLを開くだけで\nシートが自動で復元されます。\n\nもしURLが使えない場合は、\n共有されたテキストをコピーして\nここに貼り付けてください。\n\n前後に挨拶文などが含まれていても、\nアプリがデータだけを抽出して復元します。\n\n【免責事項】\n\nメモ欄の内容は投稿者によるものです。\n共有されたリンク先の利用は、\nご自身の判断と責任でお願いいたします。",
-            en: "How to use Simple Sheet\n\nMore organized than a calculator,\nLess complicated than a spreadsheet.\n\nSimple Sheet is an app that lets you keep the \"flow\" of your calculations.\n\nAdd, subtract, multiply, divide.\nYou can use it with just these 4 basic operations.\n\n【Calculation Modes】\n\nTap the button to switch the calculation base.\n\n🏠 Base\nCalculates using the \"Base\" number at the top.\n\n🔗 Chain\nCalculates by carrying over the result from the row above.\n\n【Share and Export】\n\nWith Simple Sheet, you can send your calculations directly to others.\n\n📱 Share\nSend to others / View together\n\nUse this when sharing calculations via messaging apps, email, or SNS.\n\nPressing Share copies the following two things:\n- A text summary of the process, up to 5 lines\n- A URL to restore the calculation\n\nThe recipient can open the same calculation sheet just by tapping the URL.\nThey can review the contents or edit it for their own use.\n\n📋 Copy All\nFor saving, AI, and data *Pro version\n\nCopies all calculation data without omission.\n\nCopied contents:\n- All calculation results\n- Memos\n- Restore URL\n\nPasting into Excel automatically formats it into a 3-column table.\nYou can also use this to feed calculations into AI like ChatGPT.\n\n【Import】\n\nNormally, just opening the shared URL will automatically restore the sheet.\n\nIf the URL doesn't work, copy the shared text and paste it here.\n\nEven if there are greetings or other text before or after, the app will extract only the data and restore it.\n\n【Disclaimer】\n\nThe contents of the memo field are the author's own.\nPlease use shared links at your own discretion and responsibility.",
-            zh: "Simple Sheet 使用说明\n\n比计算器更有条理，\n不像电子表格那么复杂。\n\nSimple Sheet 是一款可以保留计算“流程”的应用程序。\n\n加、减、乘、除。\n只需这 4 种基本运算即可使用。\n\n【计算模式】\n\n点击按钮切换计算基准。\n\n🏠 初始值\n使用顶部的“初始值”进行计算。\n\n🔗 链\n继承上一行的结果进行计算。\n\n【分享与导出】\n\n使用 Simple Sheet，您可以直接将计算结果发送给他人。\n\n📱 分享 (Share)\n发送给他人 / 共同查看\n\n在通过 LINE、电子邮件、SNS 等分享计算时使用。\n\n点击“分享”将复制以下两项：\n・缩短为 5 行的计算过程文本\n・可恢复计算的 URL\n\n对方只需点击 URL，即可打开相同的计算表。\n他们可以查看内容，或进行编辑供自己使用。\n\n📋 全部复制 (Copy All)\n用于保存、AI、数据 ※Pro版\n\n无省略地复制所有计算数据。\n\n复制内容：\n・所有计算结果\n・备忘录\n・恢复 URL\n\n粘贴到 Excel 中会自动变成 3 列的表格。\n也可用于让 ChatGPT 等 AI 读取计算数据。\n\n【导入】\n\n通常，只需打开分享的 URL 即可自动恢复表格。\n\n如果 URL 无法使用，请复制分享的文本并粘贴到此处。\n\n即使前后包含问候语等，应用程序也会自动提取数据并进行恢复。\n\n【免责声明】\n\n备忘录栏的内容由发布者提供。\n请自行判断并承担使用分享链接的责任。",
-            ko: "Simple Sheet 사용법\n\n계산기보다 정리하기 쉽고,\n스프레드시트만큼 복잡하지 않습니다.\n\nSimple Sheet는 계산의 '흐름'을 남길 수 있는 앱입니다.\n\n더하기, 빼기, 곱하기, 나누기.\n이 4가지 기본 연산만으로 사용할 수 있습니다.\n\n【계산 모드】\n\n버튼을 탭하여 계산 기준을 전환합니다.\n\n🏠 기준값\n맨 위의 '기준값'을 사용하여 계산합니다.\n\n🔗 체인\n바로 윗줄의 결과를 이어받아 계산합니다.\n\n【공유 및 내보내기】\n\nSimple Sheet에서는 계산을 그대로 다른 사람에게 보낼 수 있습니다.\n\n📱 공유 (Share)\n다른 사람에게 보내기 / 함께 보기\n\n메신저, 이메일, SNS 등에서 계산을 공유할 때 사용합니다.\n\nShare를 누르면 다음 두 가지가 복사됩니다.\n・중간 과정을 5줄로 요약한 텍스트\n・계산을 복원할 수 있는 URL\n\n상대방은 URL을 탭하기만 하면 같은 계산 시트를 열 수 있습니다.\n내용을 확인하거나 자신에 맞게 편집하여 사용할 수도 있습니다.\n\n📋 전체 복사 (Copy All)\n저장・AI・데이터용 ※Pro 버전\n\n모든 계산 데이터를 생략 없이 복사합니다.\n\n복사되는 내용:\n・모든 계산 결과\n・메모\n・복원 URL\n\nExcel에 붙여넣으면 자동으로 3열 표가 됩니다.\nChatGPT 등 AI에 계산을 읽어 들일 때도 사용할 수 있습니다.\n\n【불러오기(Import)】\n\n일반적으로 공유된 URL을 열기만 하면 시트가 자동으로 복원됩니다.\n\nURL을 사용할 수 없는 경우, 공유된 텍스트를 복사하여 여기에 붙여넣으세요.\n\n앞뒤에 인사말 등이 포함되어 있어도 앱이 데이터만 추출하여 복원합니다.\n\n【면책 조항】\n\n메모란의 내용은 작성자의 것입니다.\n공유된 링크 이용은 본인의 판단과 책임하에 해주시기 바랍니다.",
-            es: "Cómo usar Simple Sheet\n\nMás organizado que una calculadora,\nMenos complicado que una hoja de cálculo.\n\nSimple Sheet es una aplicación que te permite conservar el \"flujo\" de tus cálculos.\n\nSumar, restar, multiplicar, dividir.\nPuedes usarla con solo estas 4 operaciones básicas.\n\n【Modos de cálculo】\n\nToca el botón para cambiar la base del cálculo.\n\n🏠 Base\nCalcula usando el número \"Base\" en la parte superior.\n\n🔗 Cadena\nCalcula transfiriendo el resultado de la fila anterior.\n\n【Compartir y Exportar】\n\nCon Simple Sheet, puedes enviar tus cálculos directamente a otros.\n\n📱 Compartir (Share)\nEnviar a otros / Ver juntos\n\nÚsalo al compartir cálculos a través de aplicaciones de mensajería, correo o redes sociales.\n\nAl presionar Compartir se copian las siguientes dos cosas:\n- Un resumen en texto del proceso, hasta 5 líneas\n- Una URL para restaurar el cálculo\n\nEl destinatario puede abrir la misma hoja de cálculo con solo tocar la URL.\nPuede revisar el contenido o editarlo para su propio uso.\n\n📋 Copiar Todo (Copy All)\nPara guardar, IA y datos *Versión Pro\n\nCopia todos los datos del cálculo sin omisiones.\n\nContenido copiado:\n- Todos los resultados de los cálculos\n- Notas\n- URL de restauración\n\nAl pegarlo en Excel, se formatea automáticamente en una tabla de 3 columnas.\nTambién puedes usar esto para introducir cálculos en IA como ChatGPT.\n\n【Importar】\n\nNormalmente, con solo abrir la URL compartida se restaurará la hoja automáticamente.\n\nSi la URL no funciona, copia el texto compartido y pégalo aquí.\n\nIncluso si hay saludos u otro texto antes o después, la aplicación extraerá solo los datos y los restaurará.\n\n【Descargo de responsabilidad】\n\nEl contenido del campo de notas es del propio autor.\nPor favor, usa los enlaces compartidos a tu propia discreción y responsabilidad.",
-            pt: "Como usar o Simple Sheet\n\nMais organizado que uma calculadora,\nMenos complicado que uma planilha.\n\nSimple Sheet é um aplicativo que permite manter o \"fluxo\" de seus cálculos.\n\nAdicionar, subtrair, multiplicar, dividir.\nVocê pode usá-lo apenas com essas 4 operações básicas.\n\n【Modos de Cálculo】\n\nToque no botão para alternar a base de cálculo.\n\n🏠 Base\nCalcula usando o número \"Base\" no topo.\n\n🔗 Cadeia\nCalcula transferindo o resultado da linha anterior.\n\n【Compartilhar e Exportar】\n\nCom o Simple Sheet, você pode enviar seus cálculos diretamente para outras pessoas.\n\n📱 Compartilhar (Share)\nEnviar para outros / Ver juntos\n\nUse isso ao compartilhar cálculos via aplicativos de mensagens, e-mail ou redes sociais.\n\nPressionar Compartilhar copia as duas coisas a seguir:\n- Um resumo em texto do processo, até 5 linhas\n- Um URL para restaurar o cálculo\n\nO destinatário pode abrir a mesma planilha de cálculo apenas tocando no URL.\nEles podem revisar o conteúdo ou editá-lo para seu próprio uso.\n\n📋 Copiar Tudo (Copy All)\nPara salvar, IA e dados *Versão Pro\n\nCopia todos os dados de cálculo sem omissões.\n\nConteúdo copiado:\n- Todos os resultados dos cálculos\n- Notas\n- URL de restauração\n\nColar no Excel formata automaticamente em uma tabela de 3 colunas.\nVocê também pode usar isso para alimentar cálculos em IAs como o ChatGPT.\n\n【Importar】\n\nNormalmente, apenas abrir o URL compartilhado restaurará a planilha automaticamente.\n\nSe o URL não funcionar, copie o texto compartilhado e cole-o aqui.\n\nMesmo se houver saudações ou outro texto antes ou depois, o aplicativo extrairá apenas os dados e os restaurará.\n\n【Aviso Legal】\n\nO conteúdo do campo de notas é do próprio autor.\nPor favor, use os links compartilhados a seu próprio critério e responsabilidade.",
-            fr: "Comment utiliser Simple Sheet\n\nMieux organisé qu'une calculatrice,\nMoins complexe qu'un tableur.\n\nSimple Sheet est une application qui vous permet de conserver le \"flux\" de vos calculs.\n\nAdditionner, soustraire, multiplier, diviser.\nVous pouvez l'utiliser avec seulement ces 4 opérations de base.\n\n【Modes de calcul】\n\nAppuyez sur le bouton pour changer la base de calcul.\n\n🏠 Base\nCalcule en utilisant le nombre \"Base\" en haut.\n\n🔗 Chaîne\nCalcule en reportant le résultat de la ligne précédente.\n\n【Partager et Exporter】\n\nAvec Simple Sheet, vous pouvez envoyer vos calculs directement à d'autres.\n\n📱 Partager (Share)\nEnvoyer aux autres / Voir ensemble\n\nUtilisez ceci lors du partage de calculs via des applications de messagerie, des e-mails ou des réseaux sociaux.\n\nAppuyer sur Partager copie les deux choses suivantes :\n- Un résumé textuel du processus, jusqu'à 5 lignes\n- Une URL pour restaurar le calcul\n\nLe destinataire peut ouvrir la même feuille de calcul simplement en appuyant sur l'URL.\nIls peuvent revoir le contenu ou le modifier pour leur propre usage.\n\n📋 Tout Copier (Copy All)\nPour la sauvegarde, l'IA et les données *Version Pro\n\nCopie toutes les données de calcul sans omission.\n\nContenu copié :\n- Tous les résultats de calcul\n- Notes\n- URL de restauration\n\nLe collage dans Excel le formate automatiquement en un tableau à 3 colonnes.\nVous pouvez également l'utiliser pour introduire des calculs dans des IA comme ChatGPT.\n\n【Importer】\n\nNormalement, il suffit d'ouvrir l'URL partagée pour restaurer automatiquement la feuille.\n\nSi l'URL ne fonctionne pas, copiez le texte partagé et collez-le ici.\n\nMême s'il y a des salutations ou d'autres textes avant ou après, l'application n'extraira que les données et les restaurera.\n\n【Avertissement】\n\nLe contenu du champ de note appartient à l'auteur.\nVeuillez utiliser les liens partagés à votre propre discrétion et responsabilité.",
-            ru: "Как использовать Simple Sheet\n\nУдобнее, чем калькулятор,\nПроще, чем таблица.\n\nSimple Sheet — это приложение, которое позволяет сохранять «ход» ваших вычислений.\n\nСложение, вычитание, умножение, деление.\nВы можете использовать его только с этими 4 основными операциями.\n\n【Режимы вычислений】\n\nНажмите кнопку, чтобы переключить базу вычислений.\n\n🏠 База\nВычисляет, используя «Базовое» число вверху.\n\n🔗 Цепь\nВычисляет, перенося результат из предыдущей строки.\n\n【Поделиться и экспортировать】\n\nС помощью Simple Sheet вы можете отправлять свои вычисления напрямую другим людям.\n\n📱 Поделиться (Share)\nОтправить другим / Посмотреть вместе\n\nИспользуйте это при обмене вычислениями через мессенджеры, электронную почту или соцсети.\n\nПри нажатии «Поделиться» копируются следующие две вещи:\n- Текстовая сводка процесса (до 5 строк)\n- URL-адрес для восстановления вычислений\n\nПолучатель может открыть ту же таблицу вычислений, просто нажав на URL-адрес.\nОн может просмотреть содержимое или отредактировать его для собственного использования.\n\n📋 Копировать все (Copy All)\nДля сохранения, ИИ и данных *Версия Pro\n\nКопирует все данные вычислений без пропусков.\n\nСкопированное содержимое:\n- Все результаты вычислений\n- Заметки\n- URL для восстановления\n\nПри вставке в Excel данные автоматически форматируются в таблицу из 3 столбцов.\nВы также можете использовать это для передачи вычислений в ИИ, например в ChatGPT.\n\n【Импорт】\n\nОбычно простое открытие общего URL-адреса автоматически восстанавливает лист.\n\nЕсли URL-адрес не работает, скопируйте общий текст и вставьте его сюда.\n\nДаже если до или после есть приветствия или другой текст, приложение извлечет только данные и восстановит их.\n\n【Отказ от ответственности】\n\nСодержимое поля заметок принадлежит автору.\nПожалуйста, используйте общие ссылки на свое усмотрение и под свою ответственность.",
-            de: "So verwenden Sie Simple Sheet\n\nÜbersichtlicher als ein Taschenrechner,\nEinfacher als eine Tabellenkalkulation.\n\nSimple Sheet ist eine App, mit der Sie den \"Fluss\" Ihrer Berechnungen beibehalten können.\n\nAddieren, subtrahieren, multiplizieren, dividieren.\nSie können es mit nur diesen 4 Grundrechenarten verwenden.\n\n【Berechnungsmodi】\n\nTippen Sie auf die Schaltfläche, um die Berechnungsbasis umzuschalten.\n\n🏠 Basis\nBerechnet unter Verwendung der \"Basis\"-Zahl oben.\n\n🔗 Kette\nBerechnet durch Übernahme des Ergebnisses aus der vorherigen Zeile.\n\n【Teilen und Exportieren】\n\nMit Simple Sheet können Sie Ihre Berechnungen direkt an andere senden.\n\n📱 Teilen (Share)\nAn andere senden / Gemeinsam ansehen\n\nVerwenden Sie dies, wenn Sie Berechnungen über Messaging-Apps, E-Mails oder soziale Netzwerke teilen.\n\nWenn Sie auf Teilen drücken, werden die folgenden zwei Dinge kopiert:\n- Eine Textzusammenfassung des Prozesses, bis zu 5 Zeilen\n- Eine URL zur Wiederherstellung der Berechnung\n\nDer Empfänger kann dasselbe Berechnungsblatt öffnen, indem er einfach auf die URL tippt.\nEr kann den Inhalt überprüfen oder für den eigenen Gebrauch bearbeiten.\n\n📋 Alles Kopieren (Copy All)\nZum Speichern, für KI und Daten *Pro-Version\n\nKopiert alle Berechnungsdaten ohne Auslassung.\n\nKopierter Inhalt:\n- Alle Berechnungsergebnisse\n- Notizen\n- Wiederherstellungs-URL\n\nDas Einfügen in Excel formatiert es automatisch in eine 3-Spalten-Tabelle.\nSie können dies auch verwenden, um Berechnungen in KIs wie ChatGPT einzuspeisen.\n\n【Importieren】\n\nNormalerweise stellt das bloße Öffnen der freigegebenen URL das Blatt automatisch wieder her.\n\nWenn die URL nicht funktioniert, kopieren Sie den freigegebenen Text und fügen Sie ihn hier ein.\n\nSelbst wenn davor oder danach Begrüßungen oder andere Texte stehen, extrahiert die App nur die Daten und stellt sie wieder her.\n\n【Haftungsausschluss】\n\nDer Inhalt des Notizfeldes stammt vom Autor selbst.\nBitte verwenden Sie geteilte Links nach eigenem Ermessen und in eigener Verantwortung."
+            ja: "【 Simple Sheet の使い方 】\n電卓より整理できて、スプレッドシートほど複雑ではありません。\nSimple Sheet は、計算の「流れ」を残せるアプリです。\n\n【 計算モード 】\n🏠 元の数字\n一番上の「基準」の数字を使って計算します。\n🔗 チェーン\n一つ上の行の結果を引き継いで計算します。\n\n【 共有と出力 】\n📱✉️ Share（シェア）\n人に送る・一緒に見る\nShareを押すと、復元URL（※有効期限は30日間）とテキストがコピーされます。\n\n🔳 QR（QRコード）\n目の前の人と共有する・PCで開く\nQRを押すと、画面にQRコードが表示されます。（※有効期限は30日間）\n\n📋 Copy All（オールコピー）※Pro版\n保存・AI・データ用\nすべての計算データを省略せずにコピーします。\nこの機能で発行されるURLのみ【無期限】で保存用として使えます。\n\n【 💾 データの保存 】\n計算データを端末内に保存できます。\n無料版は1件のみ、Pro版は無制限に保存できます。\n\n【 読込（インポート） 】\nURLが開けない場合は、共有されたテキストをコピーして貼り付けてください。\n\n【 免責事項 】\nメモ欄の内容は投稿者によるものです。共有リンクの利用はご自身の責任でお願いいたします。",
+            en: "【 How to use Simple Sheet 】\nMore organized than a calculator, less complex than a spreadsheet.\n\n【 Calculation Mode 】\n🏠 Base Number\nCalculates using the top \"Base\" number.\n🔗 Chain\nCalculates by carrying over the result from the row above.\n\n【 Share & Export 】\n📱✉️ Share\nSend to others & view together.\nGenerates a text summary and a URL (*Valid for 30 days).\n\n🔳 QR\nShare in person & open on PC.\nDisplays a QR code instantly (*Valid for 30 days).\n\n📋 Copy All *Pro Edition\nFor Saving, AI, and Data.\nCopies everything without omission. The URL generated here is [Permanent].\n\n【 💾 Data Save 】\nSave data locally on your device.\nFree version allows 1 save. Pro version is unlimited.\n\n【 Import 】\nIf a URL doesn't work, paste the shared text here to restore.\n\n【 Disclaimer 】\nPlease use shared links at your own discretion and responsibility.",
+            zh: "【 Simple Sheet 使用说明 】\n比计算器更有条理，又不像电子表格那样复杂。\n\n【 计算模式 】\n🏠 基准数字: 使用最上方的数字进行计算。\n🔗 链式计算: 继承上一行的结果进行计算。\n\n【 分享与导出 】\n📱✉️ Share（分享）: 生成带有30天有效期的 URL。\n🔳 QR（二维码）: 面对面分享（30天有效期）。\n📋 Copy All（全部复制）※Pro 版: 用于保存、AI 和数据导出。此功能生成的 URL 是【永久有效】的。\n\n【 💾 数据保存 】\n免费版可保存1条，Pro版无限制。\n\n【 免责声明 】\n请您自行决定并承担使用共享链接的责任。",
+            ko: "【 Simple Sheet 사용법 】\n계산기보다 정리하기 쉽고, 스프레드시트만큼 복잡하지 않습니다.\n\n【 계산 모드 】\n🏠 기준 숫자: 맨 위의 숫자를 사용하여 계산합니다.\n🔗 체인: 바로 윗줄의 결과를 이어받아 계산합니다.\n\n【 공유 및 내보내기 】\n📱✉️ Share (공유): 30일 유효한 URL을 생성합니다.\n🔳 QR: 눈앞의 사람과 공유합니다(30일 유효).\n📋 Copy All (전체 복사) ※Pro 버전: 저장, AI, 데이터용. 이 기능으로 생성된 URL만 【무기한】입니다.\n\n【 💾 데이터 저장 】\n무료 버전은 1개만 저장 가능, Pro 버전은 무제한입니다.\n\n【 면책 조항 】\n공유된 링크 사용은 본인의 판단과 책임하에 이용해 주시기 바랍니다.",
+            es: "【 Cómo usar Simple Sheet 】\nMás organizado que una calculadora, menos complejo que una hoja de cálculo.\n\n【 Modo de cálculo 】\n🏠 Número base: Calcula con el número superior.\n🔗 Cadena: Calcula con el resultado de la fila anterior.\n\n【 Compartir y Exportar 】\n📱✉️ Share: Genera una URL válida por 30 días.\n🔳 QR: Compartir en persona (válido por 30 días).\n📋 Copy All *Edición Pro: Para guardar, IA y datos. La URL generada aquí es [Permanente].\n\n【 💾 Guardar datos 】\nLa versión gratuita permite 1 guardado. La versión Pro es ilimitada.\n\n【 Descargo de responsabilidad 】\nUtilice los enlaces compartidos bajo su propia responsabilidad.",
+            pt: "【 Como usar o Simple Sheet 】\nMais organizado que uma calculadora, menos complexo que uma planilha.\n\n【 Modo de Cálculo 】\n🏠 Número Base: Calcula usando o número no topo.\n🔗 Corrente: Calcula usando o resultado da linha acima.\n\n【 Compartilhar e Exportar 】\n📱✉️ Share: Gera uma URL válida por 30 dias.\n🔳 QR: Compartilhe pessoalmente (válido por 30 dias).\n📋 Copy All *Versão Pro: Para salvar, IA e dados. A URL gerada aqui é [Permanente].\n\n【 💾 Salvar Dados 】\nA versão gratuita permite 1 salvamento. A versão Pro é ilimitada.\n\n【 Aviso Legal 】\nUse os links compartilhados por sua própria conta e risco.",
+            fr: "【 Comment utiliser Simple Sheet 】\nPlus organisé qu'une calculatrice, moins complexe qu'un tableur.\n\n【 Mode de calcul 】\n🏠 Nombre de base: Calcule avec le nombre en haut.\n🔗 Chaîne: Calcule avec le résultat de la ligne précédente.\n\n【 Partager et Exporter 】\n📱✉️ Share: Génère une URL valable 30 jours.\n🔳 QR: Partager en personne (valable 30 jours).\n📋 Copy All *Édition Pro: Pour la sauvegarde, l'IA. L'URL générée ici est [Permanente].\n\n【 💾 Sauvegarder les données 】\nLa version gratuite permet 1 sauvegarde. La version Pro est illimitée.\n\n【 Clause de non-responsabilité 】\nVeuillez utiliser les liens partagés à votre propre responsabilité.",
+            ru: "【 Как использовать Simple Sheet 】\nОрганизованнее, чем калькулятор, и не так сложно, как таблица.\n\n【 Режим вычислений 】\n🏠 Базовое число: Вычисляет с использованием верхнего числа.\n🔗 Цепочка: Вычисляет с использованием результата предыдущей строки.\n\n【 Поделиться и Экспорт 】\n📱✉️ Share: Создает URL на 30 дней.\n🔳 QR: Поделиться лично (на 30 дней).\n📋 Copy All *Pro Версия: Для сохранения, ИИ и данных. Этот URL является [Постоянным].\n\n【 💾 Сохранение данных 】\nБесплатная версия: 1 сохранение. Pro версия: без ограничений.\n\n【 Отказ от ответственности 】\nИспользуйте общие ссылки под свою ответственность.",
+            de: "【 So verwenden Sie Simple Sheet 】\nBesser organisiert als ein Taschenrechner, weniger komplex als eine Tabellenkalkulation.\n\n【 Berechnungsmodus 】\n🏠 Basiszahl: Berechnet mit der oberen Zahl.\n🔗 Kette: Berechnet mit dem Ergebnis der vorherigen Zeile.\n\n【 Teilen und Exportieren 】\n📱✉️ Share: Generiert eine URL (30 Tage gültig).\n🔳 QR: Persönlich teilen (30 Tage gültig).\n📋 Copy All *Pro-Version: Für Speicherung, KI. Die hier generierte URL ist [Dauerhaft].\n\n【 💾 Daten speichern 】\nKostenlose Version erlaubt 1 Speicherung. Pro-Version ist unbegrenzt.\n\n【 Haftungsausschluss 】\nBitte verwenden Sie geteilte Links auf eigene Verantwortung."
         };
 
         const manualFooterFree = { 
-            ja: "【機能制限について】\n保存、メモ帳への書き込み、オールコピー機能はPro版限定です。",
-            en: "【Feature Limitations】\nSaving, memo editing, and Copy All are Pro version features.",
-            zh: "【关于功能限制】\n保存、编辑备忘录和全部复制是 Pro 版的功能。",
-            ko: "【기능 제한에 대해】\n저장, 메모 작성 및 전체 복사는 Pro 버전의 기능입니다.",
-            es: "【Limitaciones de funciones】\nGuardar, editar notas y Copiar Todo son funciones de la versión Pro.",
-            pt: "【Limitações de recursos】\nSalvar, editar notas e Copiar Tudo são recursos da versão Pro.",
-            fr: "【Limitations des fonctionnalités】\nL'enregistrement, la modification de notes et Tout Copier sont des fonctionnalités de la version Pro.",
-            ru: "【Ограничения функций】\nСохранение, редактирование заметок и Копировать все — это функции Pro-версии.",
-            de: "【Funktionseinschränkungen】\nDas Speichern, Bearbeiten von Notizen und Alles Kopieren sind Funktionen der Pro-Version."
+            ja: "【機能制限について】\nメモ帳の編集・オールコピー機能はPro版限定です。",
+            en: "【Feature Limitations】\nMemo editing and Copy All are Pro version features.",
+            zh: "【关于功能限制】\n编辑备忘录和全部复制是 Pro 版的功能。",
+            ko: "【기능 제한에 대해】\n메모 작성 및 전체 복사는 Pro 버전의 기능입니다.",
+            es: "【Limitaciones de funciones】\nEditar notas y Copiar Todo son funciones de la versión Pro.",
+            pt: "【Limitações de recursos】\nEditar notas e Copiar Tudo são recursos da versão Pro.",
+            fr: "【Limitations des fonctionnalités】\nLa modification de notes et Tout Copier sont des fonctionnalités de la version Pro.",
+            ru: "【Ограничения функций】\nРедактирование заметок и Копировать все — это функции Pro-версии.",
+            de: "【Funktionseinschränkungen】\nDas Bearbeiten von Notizen und Alles Kopieren sind Funktionen der Pro-Version."
         };
 
         const manualFooterPro = { 
@@ -404,41 +404,41 @@
         };
 
         const languageMap = {
-            en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
+            en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
                   btnHelp: "❓ Help", btnClose: "Close", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
-                  proTitle: "Get Pro Version 💎", proDesc: "Saving, Memo editing, and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
+                  proTitle: "Get Pro Version 💎", proDesc: "Memo editing and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
                   shareMore: "...and {N} more", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽"},
-            ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
+            ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", confirmOverwrite: "無料版は1件のみ保存可能です。上書きしますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
                   btnHelp: "❓ ヘルプ", btnClose: "閉じる", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
-                  proTitle: "Pro版のご案内 💎", proDesc: "保存、メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
+                  proTitle: "Pro版のご案内 💎", proDesc: "メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
                   shareMore: "...他 {N} 項目", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽"},
-            zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
+            zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", confirmOverwrite: "免费版只能保存1条。是否覆盖？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
                   btnHelp: "❓ 帮助", btnClose: "关闭", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
-                  proTitle: "Pro版功能 💎", proDesc: "保存、编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
+                  proTitle: "Pro版功能 💎", proDesc: "编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
                   shareMore: "...及其他 {N} 项", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽"},
-            ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
+            ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", confirmOverwrite: "무료 버전은 1개만 저장 가능합니다. 덮어쓰시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
                   btnHelp: "❓ 도움말", btnClose: "닫기", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
-                  proTitle: "Pro 기능 💎", proDesc: "저장, 메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
+                  proTitle: "Pro 기능 💎", proDesc: "메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
                   shareMore: "...외 {N}개 항목", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽"},
-            es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Imp", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
+            es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Imp", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
                   btnHelp: "❓ Ayuda", btnClose: "Cerrar", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
-                  proTitle: "Función Pro 💎", proDesc: "Guardar, editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
+                  proTitle: "Función Pro 💎", proDesc: "Editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
                   shareMore: "...y {N} más", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽"},
-            pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reiniciar tudo?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
+            pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
                   btnHelp: "❓ Ajuda", btnClose: "Fechar", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
-                  proTitle: "Recurso Pro 💎", proDesc: "Salvar, editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
+                  proTitle: "Recurso Pro 💎", proDesc: "Editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
                   shareMore: "...e mais {N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽"},
-            fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Imp", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
+            fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Imp", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
                   btnHelp: "❓ Aide", btnClose: "Fermer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
-                  proTitle: "Fonctionnalité Pro 💎", proDesc: "L'enregistrement, la note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
+                  proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
                   shareMore: "...et {N} de plus", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽"},
-            ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Имп", btnReset: "Сброс", confirmReset: "Сбросить всё?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
+            ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Имп", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
                   btnHelp: "❓ Помощь", btnClose: "Закрыть", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
-                  proTitle: "Pro Версия 💎", proDesc: "Сохранение, заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
+                  proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
                   shareMore: "...и еще {N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽"},
-            de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
+            de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
                   btnHelp: "❓ Hilfe", btnClose: "Schließen", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
-                  proTitle: "Pro-Funktion 💎", proDesc: "Speichern, Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
+                  proTitle: "Pro-Funktion 💎", proDesc: "Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
                   shareMore: "...und {N} weitere", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽"}
         };
 
@@ -467,7 +467,7 @@
                 if (data) {
                     const createdAt = data.createdAt || 0;
                     const now = Date.now();
-                    const timeLimit = 60 * 1000; // ★今はテスト用に1分にしています！
+                    const timeLimit = 60 * 1000; // ★テスト用の1分設定（本番は 30 * 24 * 60 * 60 * 1000）
 
                     if (createdAt > 0 && (now - createdAt > timeLimit)) {
                         document.body.innerHTML = `
@@ -523,7 +523,7 @@
             let savedLang = localStorage.getItem('simpleSheetLang_integrated') || 'en';
             setLanguage(savedLang); 
             applyModeUI(); 
-            if(isPro) renderSaveList();
+            renderSaveList(); // 無料ユーザーも表示するためisPro制限解除
             updateMemoLinks();
             
             const rowsContainer = document.getElementById('rows-container');
@@ -560,7 +560,7 @@
             }
             if (!shareUrl) {
                 const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}`;
+                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
             }
             
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
@@ -569,8 +569,9 @@
         }
 
         function handleMemoClick() { if (!isPro) triggerProPromo(); }
-        function handleSaveClick() { if (isPro) saveToMemory(); else triggerProPromo(); }
-        function handleEditClick() { if (isPro) toggleEditMode(); else triggerProPromo(); }
+        // ★ 保存と削除のPro制限を解除！
+        function handleSaveClick() { saveToMemory(); }
+        function handleEditClick() { toggleEditMode(); }
 
         function setLanguage(lang) {
             currentLanguage = languageMap[lang] ? lang : 'en'; 
@@ -787,7 +788,6 @@
         }
 
         function toggleEditMode() {
-            if(!isPro) return;
             isEditMode = !isEditMode;
             const btn = document.getElementById('editToggle');
             btn.classList.toggle('active', isEditMode);
@@ -795,19 +795,32 @@
             document.getElementById('saveList').classList.toggle('editing', isEditMode);
         }
 
+        // ★ 無料版の1件制限を追加！
         function saveToMemory() {
-            if(!isPro) return;
             const data = getScreenData();
             const name = data.n || "No Name";
             let lib = JSON.parse(localStorage.getItem('sheetLibrary_pro') || '[]');
-            lib.push({ id: Date.now(), name: name, content: data });
+            
+            if (!isPro) {
+                if (lib.length >= 1) {
+                    if (confirm(languageMap[currentLanguage].confirmOverwrite || "Free version limit: 1 save. Overwrite?")) {
+                        lib = [{ id: Date.now(), name: name, content: data }]; // 無料版は1件だけで上書き
+                    } else {
+                        return;
+                    }
+                } else {
+                    lib.push({ id: Date.now(), name: name, content: data });
+                }
+            } else {
+                lib.push({ id: Date.now(), name: name, content: data }); // Pro版は無制限
+            }
+            
             localStorage.setItem('sheetLibrary_pro', JSON.stringify(lib));
             renderSaveList();
             showMsg(languageMap[currentLanguage].msgSave);
         }
 
         function renderSaveList() {
-            if(!isPro) return;
             const cont = document.getElementById('saveList');
             const lib = JSON.parse(localStorage.getItem('sheetLibrary_pro') || '[]');
             cont.innerHTML = '';
@@ -918,7 +931,7 @@
             }
             if (!shareUrl) {
                 const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}`;
+                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
             }
 
             const title = data.n || 'Sheet';
@@ -966,24 +979,16 @@
             } catch (err) { showMsg("Error"); }
         }
 
+        // ★ オールコピーは「サーバーに保存しない（無期限）」仕様に変更！
         async function copyAll() {
             if (!isPro) { triggerProPromo(); return; }
             showMsg("Generating link...");
             const d = languageMap[currentLanguage] || languageMap['en'];
             const data = getScreenData();
-            data.createdAt = Date.now(); 
-
-            let shareUrl = "";
-            if (window.saveFirebaseData) {
-                const shortId = await window.saveFirebaseData(data);
-                if (shortId) {
-                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
-                }
-            }
-            if (!shareUrl) {
-                const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}`;
-            }
+            
+            // ★ Copy Allのみ、サーバーに保存せず文字をURLに変換する（無期限の長いURL）
+            const compressed = encodeSS3(data);
+            const shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
 
             const title = data.n || 'Sheet';
             const baseName = data.bn || d.baseName || 'Base';
