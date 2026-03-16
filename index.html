@@ -163,28 +163,34 @@
     <script>
         function closeAppBanner() {
             document.getElementById('app-banner').style.display = 'none';
+            // 閉じた場合は1週間（604800000ミリ秒）バナーを隠す
             localStorage.setItem('hideSimpleSheetBanner', (new Date().getTime() + 604800000).toString());
         }
         
         var ua = navigator.userAgent;
         var isAndroid = /android/i.test(ua);
-        var isWebView = /wv/.test(ua) || /Instagram|FBAN|FBAV|Line|Discord|Reddit/i.test(ua);
-        var isFromOutside = document.referrer && document.referrer.indexOf(location.hostname) === -1;
         var hideUntil = localStorage.getItem('hideSimpleSheetBanner');
         var isBannerHidden = hideUntil && new Date().getTime() < parseInt(hideUntil, 10);
 
         var params = new URLSearchParams(window.location.search);
         var forceApp = params.get('open') === 'app';
 
-        // ★アプリを持っている人は自動起動、持っていない人はWEBに留まる（フォールバックを現在のURLにする）神ロジック
+        // ★Androidなら、アプリ誘導バナーの処理を必ず行う！
         if (isAndroid) {
-            var currentUrlNoOpen = location.href.replace(/&?open=app/, '');
+            // &open=app を抜いたクリーンなURL（失敗した時に戻ってくる場所）
+            var currentUrlNoOpen = location.href.replace(/([&?])open=app&?/, '$1').replace(/&$/, '').replace(/\?$/, '');
+            
+            // ストアのURL
             var storeUrl = "https://play.google.com/store/apps/details?id=jetdev.simplesheet";
             
+            // ① アプリを自動起動するためのURL（失敗したらWEB版に残る）
             var autoIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(currentUrlNoOpen) + ";end;";
+            
+            // ② バナーのボタンを押した時のURL（失敗したらストアに飛ぶ）
             var bannerIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(storeUrl) + ";end;";
 
-            if (!isBannerHidden && (isWebView || isFromOutside || forceApp)) {
+            // ★ユーザーがバナーを「×」で消していなければ、常に表示する
+            if (!isBannerHidden) {
                 var bannerLangMap = {
                     en: { t: "📱 Open in App", b: "Open" }, ja: { t: "📱 アプリで快適に開く", b: "開く" },
                     zh: { t: "📱 在应用中打开", b: "打开" }, ko: { t: "📱 앱에서 열기", b: "열기" },
@@ -196,10 +202,13 @@
                 var langData = bannerLangMap[savedLang] || bannerLangMap['en'];
                 document.getElementById('banner-text-span').textContent = langData.t;
                 document.getElementById('app-intent-link').textContent = langData.b;
+                
+                // バナーの「開く」ボタンは、ストア行き（bannerIntentUrl）をセット
                 document.getElementById('app-intent-link').href = bannerIntentUrl;
                 document.getElementById('app-banner').style.display = 'flex';
             }
 
+            // ★URLに open=app がついていたら、自動でアプリを開こうとする！
             if (forceApp) {
                 window.location.replace(autoIntentUrl);
             }
