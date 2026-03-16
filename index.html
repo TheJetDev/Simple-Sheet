@@ -21,7 +21,7 @@
         
         /* メモ帳エリア */
         .memo-container { flex: 1; min-width: 250px; background-color: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1); height: 85vh; position: sticky; top: 8px; display: flex; flex-direction: column; }
-        .memo-area { flex: 1; width: 100%; resize: none; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-size: 0.95em; line-height: 1.5; outline: none; background: #FFF2CC; color: #333; margin-bottom: 10px; transition: background 0.3s; }
+        .memo-area { flex: 1; width: 100%; resize: none; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-size: 0.95em; line-height: 1.5; outline: none; background: #FFF2CC; color: #333; margin-bottom: 5px; transition: background 0.3s; }
         body:not(.pro-mode) .memo-area { background: #e9ecef; color: #666; cursor: not-allowed; }
         .memo-links { max-height: 150px; overflow-y: auto; padding: 5px; background: #f9f9f9; border-radius: 6px; border: 1px dashed #ccc; }
         .memo-link-item { display: block; padding: 6px; margin-bottom: 4px; background: #e3f2fd; color: #0d47a1; text-decoration: none; border-radius: 4px; font-size: 0.9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -270,7 +270,9 @@
         
         <div class="memo-container">
             <h3 id="memoTitle" style="margin: 0 0 10px 0; font-size: 1.1em; text-align: center; color: #555;">📝 Memo</h3>
-            <textarea id="memoArea" class="memo-area" placeholder="Write notes here..." oninput="updateMemoLinks(); saveSettings();" onclick="handleMemoClick()"></textarea>
+            <div id="memoFreeWarning" style="color: #E91E63; font-size: 12px; text-align: center; margin-bottom: 8px; display: none;"></div>
+            <textarea id="memoArea" class="memo-area" placeholder="Write notes here..." maxlength="2000" oninput="updateMemoLinks(); saveSettings();" onclick="handleMemoClick()"></textarea>
+            <div id="memoLimitText" style="color: gray; font-size: 11px; text-align: right; margin-bottom: 5px;"></div>
             <div id="memoLinks" class="memo-links"></div>
         </div>
 
@@ -409,44 +411,53 @@
             de: "【Pro-Version】\nAlle Funktionen freigeschaltet."
         };
 
-        // ★ shareMoreを「+{N}」に統一し、msgExpire30（30日期限の注意書き）を各言語に追加しました！
+        // ★ メモ帳関連の翻訳 (memoLimit, memoHintFree, memoHintPro) を全言語に追加しました！
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Import", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
                   btnHelp: "❓ Help", btnClose: "Close", btnPrint: "Print", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
                   proTitle: "Get Pro Version 💎", proDesc: "Memo editing and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
-                  shareMore: "+{N}", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽", msgExpire30: "*This link is valid for 30 days."},
+                  shareMore: "... +{N}", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽", msgExpire30: "*This link is valid for 30 days.",
+                  memoLimit: "Max 2000 characters.", memoHintFree: "Viewing mode (Edit is Pro feature)", memoHintPro: "Memo / Recipe / URL..."},
             ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", confirmOverwrite: "無料版は1件のみ保存可能です。上書きしますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
                   btnHelp: "❓ ヘルプ", btnClose: "閉じる", btnPrint: "印刷", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
                   proTitle: "Pro版のご案内 💎", proDesc: "メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
-                  shareMore: "+{N}", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽", msgExpire30: "※リンクの有効期限は30日間です"},
+                  shareMore: "... +{N}", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽", msgExpire30: "※リンクの有効期限は30日間です",
+                  memoLimit: "最大2000文字", memoHintFree: "閲覧モード (編集はPro版限定です)", memoHintPro: "メモ / 作り方 / URL..."},
             zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", confirmOverwrite: "免费版只能保存1条。是否覆盖？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
                   btnHelp: "❓ 帮助", btnClose: "关闭", btnPrint: "打印", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
                   proTitle: "Pro版功能 💎", proDesc: "编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
-                  shareMore: "+{N}", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽", msgExpire30: "*此链接有效期为30天。"},
+                  shareMore: "... +{N}", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽", msgExpire30: "*此链接有效期为30天。",
+                  memoLimit: "最多 2000 个字符", memoHintFree: "浏览模式 (编辑功能限Pro版)", memoHintPro: "备忘录 / URL / 食谱..."},
             ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", confirmOverwrite: "무료 버전은 1개만 저장 가능합니다. 덮어쓰시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
                   btnHelp: "❓ 도움말", btnClose: "닫기", btnPrint: "인쇄", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
                   proTitle: "Pro 기능 💎", proDesc: "메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
-                  shareMore: "+{N}", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽", msgExpire30: "*이 링크는 30일 동안 유효합니다."},
+                  shareMore: "... +{N}", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽", msgExpire30: "*이 링크는 30일 동안 유효합니다.",
+                  memoLimit: "최대 2000자", memoHintFree: "보기 모드 (편집은 Pro 기능)", memoHintPro: "메모 / URL / 레시피..."},
             es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
                   btnHelp: "❓ Ayuda", btnClose: "Cerrar", btnPrint: "Imprimir", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
                   proTitle: "Función Pro 💎", proDesc: "Editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
-                  shareMore: "+{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽", msgExpire30: "*Este enlace es válido por 30 días."},
+                  shareMore: "... +{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽", msgExpire30: "*Este enlace es válido por 30 días.",
+                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo lectura (Editar es Pro)", memoHintPro: "Nota / Receta / URL..."},
             pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
                   btnHelp: "❓ Ajuda", btnClose: "Fechar", btnPrint: "Imprimir", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
                   proTitle: "Recurso Pro 💎", proDesc: "Editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
-                  shareMore: "+{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽", msgExpire30: "*Este link é válido por 30 dias."},
+                  shareMore: "... +{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽", msgExpire30: "*Este link é válido por 30 dias.",
+                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo visualização (Editar é Pro)", memoHintPro: "Nota / Receita / URL..."},
             fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Importer", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
                   btnHelp: "❓ Aide", btnClose: "Fermer", btnPrint: "Imprimer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
                   proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
-                  shareMore: "+{N}", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽", msgExpire30: "*Ce lien est valide pendant 30 jours."},
+                  shareMore: "... +{N}", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽", msgExpire30: "*Ce lien est valide pendant 30 jours.",
+                  memoLimit: "2000 caractères max.", memoHintFree: "Mode lecture (L'édition est Pro)", memoHintPro: "Mémo / Recette / URL..."},
             ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Импорт", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
                   btnHelp: "❓ Помощь", btnClose: "Закрыть", btnPrint: "Печать", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
                   proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
-                  shareMore: "+{N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽", msgExpire30: "*Эта ссылка действительна 30 дней."},
+                  shareMore: "... +{N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽", msgExpire30: "*Эта ссылка действительна 30 дней.",
+                  memoLimit: "Макс. 2000 символов.", memoHintFree: "Режим просмотра (Правка в Pro)", memoHintPro: "Заметка / Рецепт / URL..."},
             de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
                   btnHelp: "❓ Hilfe", btnClose: "Schließen", btnPrint: "Drucken", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
                   proTitle: "Pro-Funktion 💎", proDesc: "Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
-                  shareMore: "+{N}", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽", msgExpire30: "*Dieser Link ist 30 Tage gültig."}
+                  shareMore: "... +{N}", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽", msgExpire30: "*Dieser Link ist 30 Tage gültig.",
+                  memoLimit: "Max. 2000 Zeichen.", memoHintFree: "Ansichtsmodus (Bearbeiten ist Pro)", memoHintPro: "Notiz / Rezept / URL..."}
         };
 
         async function init() {
@@ -532,10 +543,12 @@
                 document.body.classList.add('pro-mode');
                 document.getElementById('btnUnlockProContainer').style.display = 'none';
                 document.getElementById('memoArea').disabled = false;
+                document.getElementById('memoFreeWarning').style.display = 'none';
             } else {
                 document.body.classList.remove('pro-mode');
                 document.getElementById('btnUnlockProContainer').style.display = 'block';
                 document.getElementById('memoArea').disabled = true;
+                document.getElementById('memoFreeWarning').style.display = 'block';
             }
         }
 
@@ -609,17 +622,21 @@
 
             const memo = document.getElementById('memoArea').value;
             if (memo) {
-                text += `\n${d.memoHeader}\n`;
-                const maxMemoLen = 250 - text.length - 45; 
-                if (maxMemoLen > 10) {
-                    text += memo.length > maxMemoLen ? memo.substring(0, maxMemoLen).replace(/\n/g, ' ') + "...\n" : memo + "\n";
-                } else {
-                    text += "...\n";
+                text += `\n📝 `;
+                let previewMemo = memo.length > 40 ? memo.substring(0, 40).replace(/\n/g, ' ') + "..." : memo.replace(/\n/g, ' ');
+                text += previewMemo;
+
+                // ★ メモの中にURLがあれば、最初の1つを必ず表示する
+                const urlRegex = /(https?:\/\/[^\s]+)/;
+                const match = memo.match(urlRegex);
+                if(match) {
+                    text += `\n🌍 ${match[0]}`;
                 }
+                text += "\n";
             }
 
-            // ★ 最後に 30日の有効期限案内 (msgExpire30) を追加するよう修正！
-            text += `\n${d.editLinkText}\n${shareUrl}\n${d.msgExpire30}`;
+            const expireMsg = d.msgExpire30 || "※This link is valid for 30 days.";
+            text += `\n${d.editLinkText}\n${shareUrl}\n\n${expireMsg}`;
 
             try {
                 await navigator.clipboard.writeText(text);
@@ -770,6 +787,12 @@
             if(document.getElementById('memoTitle')) document.getElementById('memoTitle').textContent = d.memoTitle;
             
             document.querySelectorAll('.text-label-input').forEach(input => { input.placeholder = d.rowLabel; });
+            
+            // ★ メモ帳の制限文字などのテキストも反映！
+            document.getElementById('memoFreeWarning').textContent = d.memoHintFree;
+            document.getElementById('memoLimitText').textContent = d.memoLimit;
+            document.getElementById('memoArea').placeholder = isPro ? d.memoHintPro : d.memoHintFree;
+
             updateDisplay();
         }
 
@@ -953,6 +976,11 @@
         }
 
         function addRow(s=null) {
+            // ★ スパム対策：100行を超えようとしたらブロック！
+            if (document.querySelectorAll('#rows-container .row').length >= 100) {
+                showMsg("Max 100 rows"); return;
+            }
+
             const id = s && s.id ? s.id : Math.random().toString(36).substr(2, 5);
             const ph = languageMap[currentLanguage].rowLabel || "Item";
             const div = document.createElement('div'); div.className = 'row'; div.dataset.id = id;
