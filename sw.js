@@ -1,5 +1,5 @@
 // sw.js (Free Version)
-const CACHE_NAME = 'simple-sheet-v2.9.8'; // 
+const CACHE_NAME = 'simple-sheet-v2.9.9'; // 
 
 const urlsToCache = [
   'index.html',
