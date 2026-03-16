@@ -114,6 +114,15 @@
         .pro-btn-close { background: none; border: none; color: #999; cursor: pointer; text-decoration: underline; font-size: 0.9em; padding: 10px; }
         .text-area-import { width: 100%; height: 120px; padding: 10px; margin-bottom: 15px; background: #f9f9f9; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9em; color: #333; resize: none; }
         .title-pro-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, #1a237e 0%, #000 100%); color: white; text-decoration: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 3px 6px rgba(0,0,0,0.15); margin: 0 auto 15px auto; transition: transform 0.2s; border:none; cursor:pointer; }
+        
+        /* ★ QRコード印刷用CSS：印刷時にQRコード以外をすべて隠す魔法 */
+        @media print {
+            body * { visibility: hidden; }
+            #qrModal, #qrModal * { visibility: visible; }
+            #qrModal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex !important; justify-content: center; padding-top: 50px; background: none !important; }
+            #qrModal .pro-modal-content { box-shadow: none !important; border: none !important; background: transparent !important; }
+            #btnPrintQR, #btnCloseQR, #app-banner { display: none !important; }
+        }
     </style>
     
     <script type="module">
@@ -249,8 +258,9 @@
             <div style="background:#fff; padding:15px; border-radius:10px; display:inline-block; border:1px solid #eee;">
                 <img id="qrImage" src="" style="width:200px; height:200px; display:block;" alt="QR Code">
             </div>
-            <div style="margin-top:20px;">
-                <button class="pro-btn-close" onclick="closeModal('qrModal')">Close</button>
+            <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; align-items:center;">
+                <button class="pro-btn-buy" id="btnPrintQR" style="margin-bottom:0; width:auto; padding:8px 20px; background:#17a2b8; font-size: 1em;" onclick="window.print()">🖨️ Print</button>
+                <button class="pro-btn-close" id="btnCloseQR" style="margin-bottom:0;" onclick="closeModal('qrModal')">Close</button>
             </div>
         </div>
     </div>
@@ -292,8 +302,8 @@
 
             <div class="utility-bar">
                 <button class="util-btn manual" style="width: auto; background:#17a2b8;" onclick="openManual()" id="btnManual">❓ Help</button>
-                <button class="util-btn" onclick="openImport()">📥 <span id="btnImport">Imp</span></button>
-                <button class="util-btn" onclick="copyAll()" id="btnCopyAllTop" style="background:#6c757d;">📋 <span id="btnCopyAllText">Copy All</span></button>
+                <button class="util-btn" onclick="openImport()">📥 <span id="btnImport">Import</span></button>
+                <button class="util-btn" onclick="copyAll()" style="background:#6c757d;">📋 <span id="btnCopyAllText">Copy All</span></button>
                 <button class="util-btn reset" onclick="fullReset()">🔄 <span id="btnReset">Reset</span></button>
             </div>
 
@@ -400,41 +410,42 @@
             de: "【Pro-Version】\nAlle Funktionen freigeschaltet."
         };
 
+        // ★ Import と Copy All, Print の翻訳を全言語に適用しました！
         const languageMap = {
-            en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
-                  btnHelp: "❓ Help", btnClose: "Close", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
+            en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Import", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
+                  btnHelp: "❓ Help", btnClose: "Close", btnPrint: "Print", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
                   proTitle: "Get Pro Version 💎", proDesc: "Memo editing and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
                   shareMore: "...and {N} more", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽"},
             ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", confirmOverwrite: "無料版は1件のみ保存可能です。上書きしますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
-                  btnHelp: "❓ ヘルプ", btnClose: "閉じる", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
+                  btnHelp: "❓ ヘルプ", btnClose: "閉じる", btnPrint: "印刷", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
                   proTitle: "Pro版のご案内 💎", proDesc: "メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
                   shareMore: "...他 {N} 項目", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽"},
             zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", confirmOverwrite: "免费版只能保存1条。是否覆盖？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
-                  btnHelp: "❓ 帮助", btnClose: "关闭", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
+                  btnHelp: "❓ 帮助", btnClose: "关闭", btnPrint: "打印", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
                   proTitle: "Pro版功能 💎", proDesc: "编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
                   shareMore: "...及其他 {N} 项", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽"},
             ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", confirmOverwrite: "무료 버전은 1개만 저장 가능합니다. 덮어쓰시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
-                  btnHelp: "❓ 도움말", btnClose: "닫기", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
+                  btnHelp: "❓ 도움말", btnClose: "닫기", btnPrint: "인쇄", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
                   proTitle: "Pro 기능 💎", proDesc: "메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
                   shareMore: "...외 {N}개 항목", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽"},
-            es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Imp", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
-                  btnHelp: "❓ Ayuda", btnClose: "Cerrar", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
+            es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
+                  btnHelp: "❓ Ayuda", btnClose: "Cerrar", btnPrint: "Imprimir", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
                   proTitle: "Función Pro 💎", proDesc: "Editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
                   shareMore: "...y {N} más", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽"},
-            pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
-                  btnHelp: "❓ Ajuda", btnClose: "Fechar", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
+            pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
+                  btnHelp: "❓ Ajuda", btnClose: "Fechar", btnPrint: "Imprimir", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
                   proTitle: "Recurso Pro 💎", proDesc: "Editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
                   shareMore: "...e mais {N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽"},
-            fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Imp", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
-                  btnHelp: "❓ Aide", btnClose: "Fermer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
+            fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Importer", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
+                  btnHelp: "❓ Aide", btnClose: "Fermer", btnPrint: "Imprimer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
                   proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
                   shareMore: "...et {N} de plus", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽"},
-            ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Имп", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
-                  btnHelp: "❓ Помощь", Закрыть: "Закрыть", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
+            ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Импорт", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
+                  btnHelp: "❓ Помощь", btnClose: "Закрыть", btnPrint: "Печать", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
                   proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
                   shareMore: "...и еще {N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽"},
-            de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
-                  btnHelp: "❓ Hilfe", btnClose: "Schließen", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
+            de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
+                  btnHelp: "❓ Hilfe", btnClose: "Schließen", btnPrint: "Drucken", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
                   proTitle: "Pro-Funktion 💎", proDesc: "Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
                   shareMore: "...und {N} weitere", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽"}
         };
@@ -730,7 +741,13 @@
             applyModeUI();
             document.getElementById('masterLabel').placeholder = d.masterLabelName;
             document.getElementById('baseNameInput').placeholder = d.baseName;
+            
+            // ★ 文字の置き換えを全言語で適用！
             document.getElementById('btnImport').textContent = d.btnImport;
+            if (document.getElementById('btnCopyAllText')) document.getElementById('btnCopyAllText').textContent = d.btnCopyAll;
+            if (document.getElementById('btnPrintQR')) document.getElementById('btnPrintQR').innerHTML = "🖨️ " + (d.btnPrint || "Print");
+            if (document.getElementById('btnCloseQR')) document.getElementById('btnCloseQR').textContent = d.btnClose;
+
             document.getElementById('btnReset').textContent = d.btnReset;
             document.getElementById('addBtn').textContent = d.addRow;
             document.getElementById('copyShareBtn').textContent = d.btnShare; 
