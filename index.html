@@ -163,7 +163,6 @@
     <script>
         function closeAppBanner() {
             document.getElementById('app-banner').style.display = 'none';
-            // 閉じた場合は1週間（604800000ミリ秒）バナーを隠す
             localStorage.setItem('hideSimpleSheetBanner', (new Date().getTime() + 604800000).toString());
         }
         
@@ -175,21 +174,13 @@
         var params = new URLSearchParams(window.location.search);
         var forceApp = params.get('open') === 'app';
 
-        // ★Androidなら、アプリ誘導バナーの処理を必ず行う！
         if (isAndroid) {
-            // &open=app を抜いたクリーンなURL（失敗した時に戻ってくる場所）
             var currentUrlNoOpen = location.href.replace(/([&?])open=app&?/, '$1').replace(/&$/, '').replace(/\?$/, '');
-            
-            // ストアのURL
             var storeUrl = "https://play.google.com/store/apps/details?id=jetdev.simplesheet";
             
-            // ① アプリを自動起動するためのURL（失敗したらWEB版に残る）
             var autoIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(currentUrlNoOpen) + ";end;";
-            
-            // ② バナーのボタンを押した時のURL（失敗したらストアに飛ぶ）
             var bannerIntentUrl = "intent://" + location.host + location.pathname + location.search + "#Intent;scheme=https;package=jetdev.simplesheet;S.browser_fallback_url=" + encodeURIComponent(storeUrl) + ";end;";
 
-            // ★ユーザーがバナーを「×」で消していなければ、常に表示する
             if (!isBannerHidden) {
                 var bannerLangMap = {
                     en: { t: "📱 Open in App", b: "Open" }, ja: { t: "📱 アプリで快適に開く", b: "開く" },
@@ -203,12 +194,10 @@
                 document.getElementById('banner-text-span').textContent = langData.t;
                 document.getElementById('app-intent-link').textContent = langData.b;
                 
-                // バナーの「開く」ボタンは、ストア行き（bannerIntentUrl）をセット
                 document.getElementById('app-intent-link').href = bannerIntentUrl;
                 document.getElementById('app-banner').style.display = 'flex';
             }
 
-            // ★URLに open=app がついていたら、自動でアプリを開こうとする！
             if (forceApp) {
                 window.location.replace(autoIntentUrl);
             }
@@ -379,7 +368,6 @@
             return Math.abs(hash).toString(16).substring(0, 4).toUpperCase().padStart(4, '0');
         }
 
-        // ★ Androidと共通化されたマニュアル文（Copy Allは無期限・無料版の保存は1件まで）
         const manualBase = {
             ja: "【 Simple Sheet の使い方 】\n電卓より整理できて、スプレッドシートほど複雑ではありません。\nSimple Sheet は、計算の「流れ」を残せるアプリです。\n\n【 計算モード 】\n🏠 元の数字\n一番上の「基準」の数字を使って計算します。\n🔗 チェーン\n一つ上の行の結果を引き継いで計算します。\n\n【 共有と出力 】\n📱✉️ Share（シェア）\n人に送る・一緒に見る\nShareを押すと、復元URL（※有効期限は30日間）とテキストがコピーされます。\n\n🔳 QR（QRコード）\n目の前の人と共有する・PCで開く\nQRを押すと、画面にQRコードが表示されます。（※有効期限は30日間）\n\n📋 Copy All（オールコピー）※Pro版\n保存・AI・データ用\nすべての計算データを省略せずにコピーします。\nこの機能で発行されるURLのみ【無期限】で保存用として使えます。\n\n【 💾 データの保存 】\n計算データを端末内に保存できます。\n無料版は1件のみ、Pro版は無制限に保存できます。\n\n【 読込（インポート） 】\nURLが開けない場合は、共有されたテキストをコピーして貼り付けてください。\n\n【 免責事項 】\nメモ欄の内容は投稿者によるものです。共有リンクの利用はご自身の責任でお願いいたします。",
             en: "【 How to use Simple Sheet 】\nMore organized than a calculator, less complex than a spreadsheet.\n\n【 Calculation Mode 】\n🏠 Base Number\nCalculates using the top \"Base\" number.\n🔗 Chain\nCalculates by carrying over the result from the row above.\n\n【 Share & Export 】\n📱✉️ Share\nSend to others & view together.\nGenerates a text summary and a URL (*Valid for 30 days).\n\n🔳 QR\nShare in person & open on PC.\nDisplays a QR code instantly (*Valid for 30 days).\n\n📋 Copy All *Pro Edition\nFor Saving, AI, and Data.\nCopies everything without omission. The URL generated here is [Permanent].\n\n【 💾 Data Save 】\nSave data locally on your device.\nFree version allows 1 save. Pro version is unlimited.\n\n【 Import 】\nIf a URL doesn't work, paste the shared text here to restore.\n\n【 Disclaimer 】\nPlease use shared links at your own discretion and responsibility.",
@@ -442,7 +430,7 @@
                   proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
                   shareMore: "...et {N} de plus", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽"},
             ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Имп", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
-                  btnHelp: "❓ Помощь", btnClose: "Закрыть", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
+                  btnHelp: "❓ Помощь", Закрыть: "Закрыть", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
                   proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
                   shareMore: "...и еще {N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽"},
             de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Imp", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
@@ -496,21 +484,7 @@
                     addRow();
                 }
             } else if (urlData) {
-                if (urlData.startsWith('SS3:')) {
-                    try {
-                        const compressed = urlData.substring(4);
-                        const decompressedData = decodeSS3(compressed);
-                        if (decompressedData) { applyData(decompressedData); }
-                    } catch(e) { console.error("SS3 Load Error", e); addRow(); }
-                } 
-                else if (urlData.startsWith('SS2:')) {
-                    try {
-                        const compressed = urlData.substring(4).replace(/ /g, '+');
-                        const decompressedData = decodeSS2(compressed);
-                        if (decompressedData) { applyData(decompressedData); }
-                    } catch(e) { console.error("SS2 Load Error", e); addRow(); }
-                } 
-                else if (urlData.startsWith('SS1v1:')) {
+                if (urlData.startsWith('SS1v1:')) {
                     try {
                         const compressed = urlData.substring(6).replace(/ /g, '+');
                         const decompressed = LZString.decompressFromBase64(compressed);
@@ -532,7 +506,7 @@
             let savedLang = localStorage.getItem('simpleSheetLang_integrated') || 'en';
             setLanguage(savedLang); 
             applyModeUI(); 
-            renderSaveList(); // 無料ユーザーも表示するためisPro制限解除
+            renderSaveList();
             updateMemoLinks();
             
             const rowsContainer = document.getElementById('rows-container');
@@ -568,8 +542,9 @@
                 }
             }
             if (!shareUrl) {
-                const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
+                const jsonString = JSON.stringify(data);
+                const compressed = LZString.compressToBase64(jsonString);
+                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
             }
             
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
@@ -577,8 +552,173 @@
             document.getElementById('qrModal').classList.add('active');
         }
 
+        async function copyShare() { 
+            showMsg("Generating link...");
+            const d = languageMap[currentLanguage] || languageMap['en'];
+            const data = getScreenData();
+            data.createdAt = Date.now(); 
+
+            let shareUrl = "";
+            if (window.saveFirebaseData) {
+                const shortId = await window.saveFirebaseData(data);
+                if (shortId) {
+                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
+                }
+            }
+            if (!shareUrl) {
+                const jsonString = JSON.stringify(data);
+                const compressed = LZString.compressToBase64(jsonString);
+                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
+            }
+
+            const title = data.n || 'Sheet';
+            const baseName = data.bn || d.baseName || 'Base';
+            const baseVal = document.getElementById('masterInput').value || '0';
+
+            let text = `${title}\n\n`;
+            text += `${baseName} : ${baseVal}\n`;
+
+            const itemsTextArr = [];
+            document.querySelectorAll('#rows-container .row').forEach(r => {
+                const label = r.querySelector('.text-label-input').value || '-';
+                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
+                itemsTextArr.push(`${label} : ${val}`);
+            });
+
+            let lineCount = 0;
+            for (let i = 0; i < itemsTextArr.length; i++) {
+                if (lineCount < 5 && text.length < 200) {
+                    text += itemsTextArr[i] + "\n";
+                    lineCount++;
+                } else { break; }
+            }
+
+            if (itemsTextArr.length > lineCount) {
+                text += d.shareMore.replace('{N}', itemsTextArr.length - lineCount) + "\n";
+            }
+
+            const memo = document.getElementById('memoArea').value;
+            if (memo) {
+                text += `\n${d.memoHeader}\n`;
+                const maxMemoLen = 250 - text.length - 45; 
+                if (maxMemoLen > 10) {
+                    text += memo.length > maxMemoLen ? memo.substring(0, maxMemoLen).replace(/\n/g, ' ') + "...\n" : memo + "\n";
+                } else {
+                    text += "...\n";
+                }
+            }
+
+            text += `\n${d.editLinkText}\n${shareUrl}`;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showMsg(d.copyMsg);
+            } catch (err) { showMsg("Error"); }
+        }
+
+        async function copyAll() {
+            if (!isPro) { triggerProPromo(); return; }
+            showMsg("Generating link...");
+            const d = languageMap[currentLanguage] || languageMap['en'];
+            const data = getScreenData();
+            
+            const jsonString = JSON.stringify(data);
+            const compressed = LZString.compressToBase64(jsonString);
+            const shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
+
+            const title = data.n || 'Sheet';
+            const baseName = data.bn || d.baseName || 'Base';
+            const baseVal = document.getElementById('masterInput').value || '0';
+
+            let t = `【${escapeForExcel(title)}】\n${baseName}\t\t${baseVal}\n`;
+            
+            let h = `<table><tr><th colspan="3" style="text-align:center; background-color:#EFEFEF; font-size:14pt; padding:5px;">${escapeHtml(title)}</th></tr>`;
+            h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(baseName)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(baseVal)}</td></tr>`;
+
+            document.querySelectorAll('#rows-container .row').forEach(r => {
+                const label = r.querySelector('.text-label-input').value || '-';
+                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
+                t += `${escapeForExcel(label)}\t\t${val}\n`;
+                h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(label)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(val)}</td></tr>`;
+            });
+
+            const memo = document.getElementById('memoArea').value;
+            if (memo) {
+                t += `\n${d.memoHeader}\n${escapeForExcel(memo)}\n`;
+                h += `<tr><td colspan="3" style="background-color:#FFF2CC; padding:8px 5px;"><b>${escapeHtml(d.memoHeader)}</b><br>${insertAutoBreaks(memo)}</td></tr>`;
+
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const matches = memo.match(urlRegex);
+                if(matches) {
+                    t += "\n[ Links ]\n";
+                    h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px;">[ Links ]</td></tr>`;
+                    matches.forEach(url => {
+                        t += `${url}\n`;
+                        h += `<tr><td colspan="3" style="padding:2px 5px;"><a href="${url}" target="_blank">${url}</a></td></tr>`;
+                    });
+                }
+            }
+
+            t += `\n${d.editLinkText}\n${shareUrl}\n`;
+            h += `<tr><td colspan="3" style="padding:5px; border-top: 2px solid #ccc; font-weight:bold;">${escapeHtml(d.editLinkText)}</td></tr>`;
+            h += `<tr><td colspan="3" style="padding:5px;"><a href="${shareUrl}">${shareUrl}</a></td></tr>`;
+            h += `</table>`;
+
+            try {
+                const item = new ClipboardItem({ 'text/plain': new Blob([t], { type: 'text/plain' }), 'text/html': new Blob([h], { type: 'text/html' }) });
+                await navigator.clipboard.write([item]);
+                showMsg(d.copyMsg);
+            } catch (err) {
+                navigator.clipboard.writeText(t); 
+                showMsg(d.copyMsg + " (Text)");
+            }
+        }
+
+        function executeImport() {
+            let rawText = document.getElementById('importText').value;
+            if(!rawText) { showMsg("Paste data"); return; }
+
+            try {
+                const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=% ]+/);
+                if (ss1Match) {
+                    let extracted = ss1Match[0];
+                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
+                    if (extracted.startsWith("SS1v1:")) {
+                        const compressed = extracted.substring(6).replace(/ /g, '+');
+                        const decompressed = LZString.decompressFromBase64(compressed);
+                        if (decompressed) {
+                            applyData(JSON.parse(decompressed)); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
+                        }
+                    }
+                }
+
+                let cleanText = rawText.replace(/\u00A0/g, " ").replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "").replace(/[“”]/g, '"').replace(/```json/gi, "").replace(/```/g, "").trim();
+                const marker = "▼ DATA CODE ▼";
+                if (cleanText.includes(marker)) cleanText = cleanText.split(marker)[1].trim();
+
+                const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    let jsonPart = jsonMatch[0].replace(/\\\[/g, "[").replace(/\\\]/g, "]").replace(/\\n/g, "§N§").replace(/\r?\n/g, " ").replace(/§N§/g, "\\n");
+                    const tryParse = (str) => { try { return JSON.parse(str); } catch(e) { return null; } };
+                    let j = tryParse(jsonPart) || tryParse(jsonPart + '}') || tryParse(jsonPart + ']}') || tryParse(jsonPart + '}]}');
+                    if (j) {
+                        applyData(j); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
+                    }
+                }
+
+                if(tryParseText(rawText)){ 
+                    showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal');
+                } else {
+                    showMsg(languageMap[currentLanguage].msgError); closeModal('importModal'); 
+                }
+            } catch(err) {
+                console.error("IMPORT ERROR:", err);
+                showMsg("System Error"); closeModal('importModal');
+            }
+        }
+
+        // --- (以下の関数はそのままでOKです) ---
         function handleMemoClick() { if (!isPro) triggerProPromo(); }
-        // ★ 保存と削除のPro制限を解除！
         function handleSaveClick() { saveToMemory(); }
         function handleEditClick() { toggleEditMode(); }
 
@@ -615,64 +755,6 @@
             
             document.querySelectorAll('.text-label-input').forEach(input => { input.placeholder = d.rowLabel; });
             updateDisplay();
-        }
-
-        function encodeSS3(data) {
-            let parts = [];
-            parts.push(`H~${encodeURIComponent(data.n || '')}`);
-            parts.push(`B~${encodeURIComponent(data.bn || '')}~${data.b || ''}`);
-            if (data.r) {
-                data.r.forEach(r => {
-                    parts.push(`I~${encodeURIComponent(r.n || '')}~${r.p !== "" ? r.p : ''}~${encodeURIComponent(r.o || '+')}~${r.pct ? 1 : 0}~${r.c ? 1 : 0}`);
-                });
-            }
-            if (data.m) {
-                parts.push(`M~${encodeURIComponent(data.m)}`);
-            }
-            const rawString = parts.join('!');
-            return LZString.compressToEncodedURIComponent(rawString);
-        }
-
-        function decodeSS3(compressedStr) {
-            const raw = LZString.decompressFromEncodedURIComponent(compressedStr);
-            if (!raw) return null;
-            let data = { r: [] };
-            raw.split('!').forEach(p => {
-                let chunks = p.split('~');
-                if (chunks[0] === 'H') data.n = decodeURIComponent(chunks[1] || '');
-                else if (chunks[0] === 'B') { data.bn = decodeURIComponent(chunks[1] || ''); data.b = chunks[2] || ''; }
-                else if (chunks[0] === 'I') {
-                    data.r.push({
-                        n: decodeURIComponent(chunks[1] || ''), p: parseFloat(chunks[2]) || 0,
-                        o: decodeURIComponent(chunks[3] || '+'), pct: chunks[4] === '1', c: chunks[5] === '1'
-                    });
-                }
-                else if (chunks[0] === 'M') {
-                    data.m = decodeURIComponent(chunks[1] || '');
-                }
-            });
-            return data;
-        }
-
-        function decodeSS2(compressedStr) {
-            const raw = LZString.decompressFromBase64(compressedStr);
-            if (!raw) return null;
-            let data = { r: [] };
-            raw.split('!').forEach(p => {
-                let chunks = p.split('~');
-                if (chunks[0] === 'H') data.n = decodeURIComponent(chunks[1] || '');
-                else if (chunks[0] === 'B') { data.bn = decodeURIComponent(chunks[1] || ''); data.b = chunks[2] || ''; }
-                else if (chunks[0] === 'I') {
-                    data.r.push({
-                        n: decodeURIComponent(chunks[1] || ''), p: parseFloat(chunks[2]) || 0,
-                        o: decodeURIComponent(chunks[3] || '+'), pct: chunks[4] === '1', c: chunks[5] === '1'
-                    });
-                }
-                else if (chunks[0] === 'M') {
-                    data.m = decodeURIComponent(chunks[1] || '');
-                }
-            });
-            return data;
         }
 
         function triggerProPromo() { document.getElementById('proModal').classList.add('active'); }
@@ -804,7 +886,6 @@
             document.getElementById('saveList').classList.toggle('editing', isEditMode);
         }
 
-        // ★ 無料版の1件制限を追加！
         function saveToMemory() {
             const data = getScreenData();
             const name = data.n || "No Name";
@@ -813,7 +894,7 @@
             if (!isPro) {
                 if (lib.length >= 1) {
                     if (confirm(languageMap[currentLanguage].confirmOverwrite || "Free version limit: 1 save. Overwrite?")) {
-                        lib = [{ id: Date.now(), name: name, content: data }]; // 無料版は1件だけで上書き
+                        lib = [{ id: Date.now(), name: name, content: data }]; 
                     } else {
                         return;
                     }
@@ -821,7 +902,7 @@
                     lib.push({ id: Date.now(), name: name, content: data });
                 }
             } else {
-                lib.push({ id: Date.now(), name: name, content: data }); // Pro版は無制限
+                lib.push({ id: Date.now(), name: name, content: data }); 
             }
             
             localStorage.setItem('sheetLibrary_pro', JSON.stringify(lib));
@@ -923,208 +1004,6 @@
                 } else { res += escapeHtml(line) + "<br>"; }
             });
             return res;
-        }
-
-        async function copyShare() { 
-            showMsg("Generating link...");
-            const d = languageMap[currentLanguage] || languageMap['en'];
-            const data = getScreenData();
-            data.createdAt = Date.now(); 
-
-            let shareUrl = "";
-            if (window.saveFirebaseData) {
-                const shortId = await window.saveFirebaseData(data);
-                if (shortId) {
-                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
-                }
-            }
-            if (!shareUrl) {
-                const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
-            }
-
-            const title = data.n || 'Sheet';
-            const baseName = data.bn || d.baseName || 'Base';
-            const baseVal = document.getElementById('masterInput').value || '0';
-
-            let text = `${title}\n\n`;
-            text += `${baseName} : ${baseVal}\n`;
-
-            const itemsTextArr = [];
-            document.querySelectorAll('#rows-container .row').forEach(r => {
-                const label = r.querySelector('.text-label-input').value || '-';
-                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
-                itemsTextArr.push(`${label} : ${val}`);
-            });
-
-            let lineCount = 0;
-            for (let i = 0; i < itemsTextArr.length; i++) {
-                if (lineCount < 5 && text.length < 200) {
-                    text += itemsTextArr[i] + "\n";
-                    lineCount++;
-                } else { break; }
-            }
-
-            if (itemsTextArr.length > lineCount) {
-                text += d.shareMore.replace('{N}', itemsTextArr.length - lineCount) + "\n";
-            }
-
-            const memo = document.getElementById('memoArea').value;
-            if (memo) {
-                text += `\n${d.memoHeader}\n`;
-                const maxMemoLen = 250 - text.length - 45; 
-                if (maxMemoLen > 10) {
-                    text += memo.length > maxMemoLen ? memo.substring(0, maxMemoLen).replace(/\n/g, ' ') + "...\n" : memo + "\n";
-                } else {
-                    text += "...\n";
-                }
-            }
-
-            text += `\n${d.editLinkText}\n${shareUrl}`;
-
-            try {
-                await navigator.clipboard.writeText(text);
-                showMsg(d.copyMsg);
-            } catch (err) { showMsg("Error"); }
-        }
-
-        // ★ オールコピーも「短いURL」にするけど、無期限（0）で保存する！
-        async function copyAll() {
-            if (!isPro) { triggerProPromo(); return; }
-            showMsg("Generating link...");
-            const d = languageMap[currentLanguage] || languageMap['en'];
-            const data = getScreenData();
-            
-            // ★ ここが魔法の1行！作成時間を「0」にすることで永久保存にする
-            data.createdAt = 0; 
-
-            let shareUrl = "";
-            if (window.saveFirebaseData) {
-                const shortId = await window.saveFirebaseData(data);
-                if (shortId) {
-                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
-                }
-            }
-            if (!shareUrl) {
-                const compressed = encodeSS3(data);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
-            }
-
-            const title = data.n || 'Sheet';
-            const baseName = data.bn || d.baseName || 'Base';
-            const baseVal = document.getElementById('masterInput').value || '0';
-
-            let t = `【${escapeForExcel(title)}】\n${baseName}\t\t${baseVal}\n`;
-            
-            let h = `<table><tr><th colspan="3" style="text-align:center; background-color:#EFEFEF; font-size:14pt; padding:5px;">${escapeHtml(title)}</th></tr>`;
-            h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(baseName)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(baseVal)}</td></tr>`;
-
-            document.querySelectorAll('#rows-container .row').forEach(r => {
-                const label = r.querySelector('.text-label-input').value || '-';
-                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
-                t += `${escapeForExcel(label)}\t\t${val}\n`;
-                h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(label)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(val)}</td></tr>`;
-            });
-
-            const memo = document.getElementById('memoArea').value;
-            if (memo) {
-                t += `\n${d.memoHeader}\n${escapeForExcel(memo)}\n`;
-                h += `<tr><td colspan="3" style="background-color:#FFF2CC; padding:8px 5px;"><b>${escapeHtml(d.memoHeader)}</b><br>${insertAutoBreaks(memo)}</td></tr>`;
-
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                const matches = memo.match(urlRegex);
-                if(matches) {
-                    t += "\n[ Links ]\n";
-                    h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px;">[ Links ]</td></tr>`;
-                    matches.forEach(url => {
-                        t += `${url}\n`;
-                        h += `<tr><td colspan="3" style="padding:2px 5px;"><a href="${url}" target="_blank">${url}</a></td></tr>`;
-                    });
-                }
-            }
-
-            t += `\n${d.editLinkText}\n${shareUrl}\n`;
-            h += `<tr><td colspan="3" style="padding:5px; border-top: 2px solid #ccc; font-weight:bold;">${escapeHtml(d.editLinkText)}</td></tr>`;
-            h += `<tr><td colspan="3" style="padding:5px;"><a href="${shareUrl}">${shareUrl}</a></td></tr>`;
-            h += `</table>`;
-
-            try {
-                const item = new ClipboardItem({ 'text/plain': new Blob([t], { type: 'text/plain' }), 'text/html': new Blob([h], { type: 'text/html' }) });
-                await navigator.clipboard.write([item]);
-                showMsg(d.copyMsg);
-            } catch (err) {
-                navigator.clipboard.writeText(t); 
-                showMsg(d.copyMsg + " (Text)");
-            }
-        }
-
-        function executeImport() {
-            let rawText = document.getElementById('importText').value;
-            if(!rawText) { showMsg("Paste data"); return; }
-
-            try {
-                const ss3Match = rawText.match(/SS3(?:%3A|:)[A-Za-z0-9\+\-\_\$]+/);
-                if (ss3Match) {
-                    let extracted = ss3Match[0];
-                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
-                    if (extracted.startsWith("SS3:")) {
-                        const compressed = extracted.substring(4);
-                        const decompressedData = decodeSS3(compressed);
-                        if (decompressedData) {
-                            applyData(decompressedData); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
-                        }
-                    }
-                }
-
-                const ss2Match = rawText.match(/SS2(?:%3A|:)[A-Za-z0-9+/=%-]+/);
-                if (ss2Match) {
-                    let extracted = ss2Match[0];
-                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
-                    if (extracted.startsWith("SS2:")) {
-                        const compressed = extracted.substring(4).replace(/ /g, '+');
-                        const decompressedData = decodeSS2(compressed);
-                        if (decompressedData) {
-                            applyData(decompressedData); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
-                        }
-                    }
-                }
-
-                const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=% ]+/);
-                if (ss1Match) {
-                    let extracted = ss1Match[0];
-                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
-                    if (extracted.startsWith("SS1v1:")) {
-                        const compressed = extracted.substring(6).replace(/ /g, '+');
-                        const decompressed = LZString.decompressFromBase64(compressed);
-                        if (decompressed) {
-                            applyData(JSON.parse(decompressed)); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
-                        }
-                    }
-                }
-
-                let cleanText = rawText.replace(/\u00A0/g, " ").replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "").replace(/[“”]/g, '"').replace(/```json/gi, "").replace(/```/g, "").trim();
-                const marker = "▼ DATA CODE ▼";
-                if (cleanText.includes(marker)) cleanText = cleanText.split(marker)[1].trim();
-
-                const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    let jsonPart = jsonMatch[0].replace(/\\\[/g, "[").replace(/\\\]/g, "]").replace(/\\n/g, "§N§").replace(/\r?\n/g, " ").replace(/§N§/g, "\\n");
-                    const tryParse = (str) => { try { return JSON.parse(str); } catch(e) { return null; } };
-                    let j = tryParse(jsonPart) || tryParse(jsonPart + '}') || tryParse(jsonPart + ']}') || tryParse(jsonPart + '}]}');
-                    if (j) {
-                        applyData(j); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
-                    }
-                }
-
-                if(tryParseText(rawText)){ 
-                    showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal');
-                } else {
-                    showMsg(languageMap[currentLanguage].msgError); closeModal('importModal'); 
-                }
-            } catch(err) {
-                console.error("IMPORT ERROR:", err);
-                showMsg("System Error"); closeModal('importModal');
-            }
         }
 
         function tryParseText(text) {
