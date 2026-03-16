@@ -979,16 +979,27 @@
             } catch (err) { showMsg("Error"); }
         }
 
-        // ★ オールコピーは「サーバーに保存しない（無期限）」仕様に変更！
+        // ★ オールコピーも「短いURL」にするけど、無期限（0）で保存する！
         async function copyAll() {
             if (!isPro) { triggerProPromo(); return; }
             showMsg("Generating link...");
             const d = languageMap[currentLanguage] || languageMap['en'];
             const data = getScreenData();
             
-            // ★ Copy Allのみ、サーバーに保存せず文字をURLに変換する（無期限の長いURL）
-            const compressed = encodeSS3(data);
-            const shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
+            // ★ ここが魔法の1行！作成時間を「0」にすることで永久保存にする
+            data.createdAt = 0; 
+
+            let shareUrl = "";
+            if (window.saveFirebaseData) {
+                const shortId = await window.saveFirebaseData(data);
+                if (shortId) {
+                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
+                }
+            }
+            if (!shareUrl) {
+                const compressed = encodeSS3(data);
+                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS3:${compressed}&open=app`;
+            }
 
             const title = data.n || 'Sheet';
             const baseName = data.bn || d.baseName || 'Base';
