@@ -637,9 +637,7 @@
             text += `\n${d.editLinkText}\n${shareUrl}\n\n${expireMsg}`;
 
             // ★ Reddit対策の要 ★
-            // プレーンテキスト（通常用）
             const plainText = text;
-            // HTMLテキスト（Reddit用：全体をspanで囲み、改行をすべて <br> に強制変換）
             const htmlText = `<span>${escapeHtml(text).replace(/\n/g, '<br>')}</span>`;
 
             try {
@@ -654,6 +652,82 @@
                 showMsg(d.copyMsg);
             }
         }
+
+        async function copyAll() {
+            if (!isPro) { triggerProPromo(); return; }
+            showMsg("Generating link...");
+            const d = languageMap[currentLanguage] || languageMap['en'];
+            const data = getScreenData();
+            
+            const jsonString = JSON.stringify(data);
+            const compressed = LZString.compressToBase64(jsonString);
+            const shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
+
+            const title = data.n || 'Sheet';
+            const baseName = data.bn || d.baseName || 'Base';
+            const baseVal = document.getElementById('masterInput').value || '0';
+
+            let t = `【${escapeForExcel(title)}】\n${baseName}\t\t${baseVal}\n`;
+            
+            let h = `<table><tr><th colspan="3" style="text-align:center; background-color:#EFEFEF; font-size:14pt; padding:5px;">${escapeHtml(title)}</th></tr>`;
+            h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(baseName)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(baseVal)}</td></tr>`;
+
+            document.querySelectorAll('#rows-container .row').forEach(r => {
+                const label = r.querySelector('.text-label-input').value || '-';
+                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
+                t += `${escapeForExcel(label)}\t\t${val}\n`;
+                h += `<tr><td colspan="2" style="padding:3px 5px;">${escapeHtml(label)}</td><td style="text-align:right; padding:3px 5px;">${escapeHtml(val)}</td></tr>`;
+            });
+
+            const memo = document.getElementById('memoArea').value;
+            if (memo) {
+                t += `\n${d.memoHeader}\n${escapeForExcel(memo)}\n`;
+                h += `<tr><td colspan="3" style="background-color:#FFF2CC; padding:8px 5px;"><b>${escapeHtml(d.memoHeader)}</b><br>${insertAutoBreaks(memo)}</td></tr>`;
+
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const matches = memo.match(urlRegex);
+                if(matches) {
+                    t += "\n[ Links ]\n";
+                    h += `<tr><td colspan="3" style="background-color:#EFEFEF; font-weight:bold; padding:5px;">[ Links ]</td></tr>`;
+                    matches.forEach(url => {
+                        t += `${url}\n`;
+                        h += `<tr><td colspan="3" style="padding:2px 5px;"><a href="${url}" target="_blank">${url}</a></td></tr>`;
+                    });
+                }
+            }
+
+            t += `\n${d.editLinkText}\n${shareUrl}\n`;
+            h += `<tr><td colspan="3" style="padding:5px; border-top: 2px solid #ccc; font-weight:bold;">${escapeHtml(d.editLinkText)}</td></tr>`;
+            h += `<tr><td colspan="3" style="padding:5px;"><a href="${shareUrl}">${shareUrl}</a></td></tr>`;
+            h += `</table>`;
+
+            try {
+                const item = new ClipboardItem({ 'text/plain': new Blob([t], { type: 'text/plain' }), 'text/html': new Blob([h], { type: 'text/html' }) });
+                await navigator.clipboard.write([item]);
+                showMsg(d.copyMsg);
+            } catch (err) {
+                navigator.clipboard.writeText(t); 
+                showMsg(d.copyMsg + " (Text)");
+            }
+        }
+
+        function executeImport() {
+            let rawText = document.getElementById('importText').value;
+            if(!rawText) { showMsg("Paste data"); return; }
+
+            try {
+                const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=% ]+/);
+                if (ss1Match) {
+                    let extracted = ss1Match[0];
+                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
+                    if (extracted.startsWith("SS1v1:")) {
+                        const compressed = extracted.substring(6).replace(/ /g, '+');
+                        const decompressed = LZString.decompressFromBase64(compressed);
+                        if (decompressed) {
+                            applyData(JSON.parse(decompressed)); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
+                        }
+                    }
+                }
 
                 let cleanText = rawText.replace(/\u00A0/g, " ").replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "").replace(/[“”]/g, '"').replace(/```json/gi, "").replace(/```/g, "").trim();
                 const marker = "▼ DATA CODE ▼";
