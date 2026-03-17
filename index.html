@@ -625,7 +625,6 @@
                 text += `\n📝 `;
                 let previewMemo = memo.length > 40 ? memo.substring(0, 40).replace(/\n/g, ' ') + "..." : memo.replace(/\n/g, ' ');
 
-                // ★ メモの中にURLがあれば、最初の1つを必ず表示する
                 const urlRegex = /(https?:\/\/[^\s]+)/;
                 const match = memo.match(urlRegex);
                 if(match) {
@@ -637,22 +636,13 @@
             const expireMsg = d.msgExpire30 || "※This link is valid for 30 days.";
             text += `\n${d.editLinkText}\n${shareUrl}\n\n${expireMsg}`;
 
-            // ★ ここからが Reddit / Web用 行間（スペース）対策 ★
-            // 1. プレーンテキスト用：Markdownで改行されるように、各行の末尾に半角スペース2つを追加
-            const plainText = text.split('\n').map(line => line.replace(/\s+$/, '') + '  ').join('\n');
-
-            // 2. HTML（リッチテキスト）用：Reddit等で余計な行間が入らないように margin:0 の div で囲む
-            let htmlText = "";
-            text.split('\n').forEach(line => {
-                if (line.trim() === "") {
-                    htmlText += `<div style="margin:0; padding:0; min-height:1em;"><br></div>`;
-                } else {
-                    htmlText += `<div style="margin:0; padding:0;">${escapeHtml(line)}</div>`;
-                }
-            });
+            // ★ Reddit対策の要 ★
+            // プレーンテキスト（通常用）
+            const plainText = text;
+            // HTMLテキスト（Reddit用：全体をspanで囲み、改行をすべて <br> に強制変換）
+            const htmlText = `<span>${escapeHtml(text).replace(/\n/g, '<br>')}</span>`;
 
             try {
-                // HTMLとテキストの両方をクリップボードに送る（スプレッドシートの縦並びも維持）
                 const item = new ClipboardItem({
                     'text/plain': new Blob([plainText], { type: 'text/plain' }),
                     'text/html': new Blob([htmlText], { type: 'text/html' })
@@ -660,29 +650,10 @@
                 await navigator.clipboard.write([item]);
                 showMsg(d.copyMsg);
             } catch (err) {
-                // Safariなどの古いブラウザ用のフォールバック処理
                 navigator.clipboard.writeText(plainText);
                 showMsg(d.copyMsg);
             }
         }
-
-        function executeImport() {
-            let rawText = document.getElementById('importText').value;
-            if(!rawText) { showMsg("Paste data"); return; }
-
-            try {
-                const ss1Match = rawText.match(/SS1v1(?:%3A|:)[A-Za-z0-9+/=% ]+/);
-                if (ss1Match) {
-                    let extracted = ss1Match[0];
-                    try { extracted = decodeURIComponent(extracted); } catch(e) {}
-                    if (extracted.startsWith("SS1v1:")) {
-                        const compressed = extracted.substring(6).replace(/ /g, '+');
-                        const decompressed = LZString.decompressFromBase64(compressed);
-                        if (decompressed) {
-                            applyData(JSON.parse(decompressed)); showMsg(languageMap[currentLanguage].msgLoad); closeModal('importModal'); return; 
-                        }
-                    }
-                }
 
                 let cleanText = rawText.replace(/\u00A0/g, " ").replace(/[\u200B\u200E\uFEFF\u202A-\u202E]/g, "").replace(/[“”]/g, '"').replace(/```json/gi, "").replace(/```/g, "").trim();
                 const marker = "▼ DATA CODE ▼";
