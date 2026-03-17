@@ -620,13 +620,14 @@
                 text += d.shareMore.replace('{N}', itemsTextArr.length - lineCount) + "\n";
             }
 
+            // ★ メモの処理 ＆ URLの抽出 ★
             const memo = document.getElementById('memoArea').value;
             if (memo) {
                 text += `\n📝 `;
                 let previewMemo = memo.length > 40 ? memo.substring(0, 40).replace(/\n/g, ' ') + "..." : memo.replace(/\n/g, ' ');
                 text += previewMemo;
 
-                // ★ メモの中にURLがあれば、最初の1つを必ず表示する
+                // メモの中にURLがあれば、最初の1つを必ず表示する
                 const urlRegex = /(https?:\/\/[^\s]+)/;
                 const match = memo.match(urlRegex);
                 if(match) {
@@ -638,10 +639,21 @@
             const expireMsg = d.msgExpire30 || "※This link is valid for 30 days.";
             text += `\n${d.editLinkText}\n${shareUrl}\n\n${expireMsg}`;
 
+            // ★ ここから下がReddit行間対策！ ★
+            const plainText = text;
+            const htmlText = `<span>${escapeHtml(text).replace(/\n/g, '<br>')}</span>`;
+
             try {
-                await navigator.clipboard.writeText(text);
+                const item = new ClipboardItem({
+                    'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlText], { type: 'text/html' })
+                });
+                await navigator.clipboard.write([item]);
                 showMsg(d.copyMsg);
-            } catch (err) { showMsg("Error"); }
+            } catch (err) {
+                navigator.clipboard.writeText(plainText);
+                showMsg(d.copyMsg);
+            }
         }
 
         async function copyAll() {
