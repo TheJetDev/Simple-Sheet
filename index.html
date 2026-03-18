@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Simple Sheet</title>
+    
+    <meta name="robots" content="noindex,nofollow">
+    
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#e0e0e0">
     <link rel="manifest" href="manifest.json">
@@ -125,8 +128,9 @@
     </style>
     
     <script type="module">
+      /* ★ 5. serverTimestamp をインポートに追加 ★ */
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-      import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyDhzNII5lGP3hQj7Z3r8WKs2g6flk6WbqU",
@@ -149,11 +153,28 @@
         } catch (e) { return null; }
       };
 
+      /* ★ 5. Firestoreルールの完全準拠 (v: 1, serverTimestamp, expireAt, 文字数カット) ★ */
       window.saveFirebaseData = async (dataMap) => {
         try {
-          const docRef = await addDoc(collection(db, "shares"), dataMap);
-          return docRef.id;
-        } catch (e) { return null; }
+            const payload = {
+                v: 1,
+                n: (dataMap.n || "").substring(0, 100),
+                bn: (dataMap.bn || "").substring(0, 50),
+                b: (dataMap.b || "").substring(0, 15),
+                m: (dataMap.m || "").substring(0, 2000),
+                r: dataMap.r.map(row => ({
+                    n: (row.n || "").substring(0, 50),
+                    p: row.p || 0,
+                    o: row.o || "+",
+                    c: row.c || false,
+                    pct: row.pct || false
+                })),
+                createdAt: serverTimestamp(),
+                expireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            };
+            const docRef = await addDoc(collection(db, "shares"), payload);
+            return docRef.id;
+        } catch (e) { console.error(e); return null; }
       };
     </script>
 </head>
@@ -251,6 +272,18 @@
         </div>
     </div>
 
+    <div id="shareWarningModal" class="pro-modal-overlay">
+        <div class="pro-modal-content" style="max-width:350px;">
+            <div class="pro-title" id="swTitle">Create Public Link</div>
+            <div class="pro-desc" id="swDesc" style="text-align:center; margin-bottom:15px;">Anyone with the link can view this calculation.<br>Continue?</div>
+            <label style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; cursor:pointer; color:#555; font-size:14px;">
+                <input type="checkbox" id="swDontShowAgain" style="transform: scale(1.3);"> <span id="swCheckLabel">Don't show again</span>
+            </label>
+            <button class="pro-btn-buy" id="swBtnContinue" style="background: #007bff;">Continue</button>
+            <button class="pro-btn-close" id="swBtnCancel" onclick="closeModal('shareWarningModal')">Cancel</button>
+        </div>
+    </div>
+
     <div id="qrModal" class="pro-modal-overlay">
         <div class="pro-modal-content" style="max-width:350px; text-align:center;">
             <div class="pro-title" style="margin-bottom:15px;">Simple Sheet</div>
@@ -280,7 +313,7 @@
             
             <div class="top-controls" style="display:flex; justify-content: space-between; align-items: center; margin-bottom:10px; flex-wrap: wrap; gap:8px;">
                 <div style="flex:1; display:flex; align-items:center; border:2px solid #000; border-radius:6px; padding:6px 10px; min-width:140px; background:#fff;">
-                    <input type="text" id="masterLabel" style="border:none; outline:none; font-weight:bold; width:100%; color:#000;" oninput="saveSettings()">
+                    <input type="text" id="masterLabel" maxlength="100" style="border:none; outline:none; font-weight:bold; width:100%; color:#000;" oninput="saveSettings()">
                 </div>
                 <div style="display:flex; gap:5px; align-items:center;">
                     <div id="langContainer" style="display:flex; gap:3px; flex-wrap: wrap;"></div>
@@ -312,16 +345,16 @@
                 <div class="master-row">
                     <div style="display:flex; align-items:center; width:45%;">
                         <span style="font-weight:bold; color:#dc3545; margin-right:5px; font-size:1.2em;">🏠</span>
-                        <input type="text" id="baseNameInput" style="border:none; outline:none; font-weight:bold; color:#dc3545; width:100%; font-size:1.1em; background:transparent;" placeholder="Base" oninput="saveSettings()">
+                        <input type="text" id="baseNameInput" maxlength="50" style="border:none; outline:none; font-weight:bold; color:#dc3545; width:100%; font-size:1.1em; background:transparent;" placeholder="Base" oninput="saveSettings()">
                     </div>
-                    <input type="number" id="masterInput" class="master-input" step="any" placeholder="" oninput="updateDisplay()">
+                    <input type="number" id="masterInput" class="master-input" step="any" placeholder="" oninput="if(this.value.length > 15) this.value = this.value.slice(0, 15); updateDisplay();">
                 </div>
                 <div id="rows-container"></div>
                 
                 <div style="text-align: center; margin-top: 15px; display: flex; gap: 8px;">
                     <button class="mode-button" id="addBtn" style="background:#28a745; color:white; flex:1.5; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="addRow()">+ Row</button>
-                    <button class="mode-button" id="copyShareBtn" style="background:#007bff; color:white; flex:2; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="copyShare()">📱✉️ Share</button>
-                    <button class="mode-button" id="qrBtn" style="background:#343a40; color:white; flex:1; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="showQR()">🔳 QR</button>
+                    <button class="mode-button" id="copyShareBtn" style="background:#007bff; color:white; flex:2; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="handleShareClick(false)">📱✉️ Share</button>
+                    <button class="mode-button" id="qrBtn" style="background:#343a40; color:white; flex:1; justify-content:center; border:none; border-radius:6px; padding:12px; font-weight:bold; font-size:1.1rem; cursor:pointer;" onclick="handleShareClick(true)">🔳 QR</button>
                 </div>
             </div>
 
@@ -367,6 +400,9 @@
         let isEditMode = false;
         let currentCalc = "0";
         let isLoading = false;
+        
+        // ★ 2. スパム連打防止ロック ★
+        let isSharing = false;
 
         function generateCheckCode(baseStr) {
             let hash = 0;
@@ -411,53 +447,62 @@
             de: "【Pro-Version】\nAlle Funktionen freigeschaltet."
         };
 
-        // ★ メモ帳関連の翻訳 (memoLimit, memoHintFree, memoHintPro) を全言語に追加しました！
+        // ★ 6. ダイアログの多言語テキストを追加 ★
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Import", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
                   btnHelp: "❓ Help", btnClose: "Close", btnPrint: "Print", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
                   proTitle: "Get Pro Version 💎", proDesc: "Memo editing and Copy All are Pro features.", proBtn: "Go to App Store", btnProLink: "🚀 How to get Pro?",
                   shareMore: "... +{N}", memoHeader: "[ Memo ]", editLinkText: "▽ Edit in Simple Sheet ▽", msgExpire30: "*This link is valid for 30 days.",
-                  memoLimit: "Max 2000 characters.", memoHintFree: "Viewing mode (Edit is Pro feature)", memoHintPro: "Memo / Recipe / URL..."},
+                  memoLimit: "Max 2000 characters.", memoHintFree: "Viewing mode (Edit is Pro feature)", memoHintPro: "Memo / Recipe / URL...",
+                  msgGenerating: "Generating...", dialogShareTitle: "Create Public Link", dialogShareMsg: "Anyone with the link can view this calculation.\nContinue?", dialogShareCheck: "Don't show again", btnContinue: "Continue", btnCancel: "Cancel" },
             ja: { title: "Simple Sheet", masterLabelName: "タイトル", baseName: "基準", rowLabel: "項目名", copyMsg: "コピー完了", btnImport: "読込", btnReset: "初期化", confirmReset: "全削除しますか？", confirmOverwrite: "無料版は1件のみ保存可能です。上書きしますか？", addRow: "+ 行を追加", btnShare: "📱✉️ シェア", btnQR: "🔳 QR", btnCopyAll: "オールコピー", calcTitle: "電卓", btnSave: "💾 記憶",
                   btnHelp: "❓ ヘルプ", btnClose: "閉じる", btnPrint: "印刷", msgSave: "保存しました", msgLoad: "読み込みました", confirmDel: "削除しますか？", msgError: "エラー", impTitle:"データの読込", impDesc:"ここにデータを貼り付け:", btnLoad:"読込開始", memoTitle: "📝 メモ",
                   proTitle: "Pro版のご案内 💎", proDesc: "メモ機能、全件出力はPro版限定です。", proBtn: "アプリストアへ", btnProLink: "🚀 Pro版を使うには？",
                   shareMore: "... +{N}", memoHeader: "[ メモ ]", editLinkText: "▽ Simple Sheet で編集 ▽", msgExpire30: "※リンクの有効期限は30日間です",
-                  memoLimit: "最大2000文字", memoHintFree: "閲覧モード (編集はPro版限定です)", memoHintPro: "メモ / 作り方 / URL..."},
+                  memoLimit: "最大2000文字", memoHintFree: "閲覧モード (編集はPro版限定です)", memoHintPro: "メモ / 作り方 / URL...",
+                  msgGenerating: "リンクを作成中...", dialogShareTitle: "公開リンクの作成", dialogShareMsg: "このリンクを知っている人は誰でも内容を閲覧できます。\nよろしいですか？", dialogShareCheck: "今後表示しない", btnContinue: "作成する", btnCancel: "キャンセル" },
             zh: { title: "Simple Sheet", masterLabelName: "标题", baseName: "初始值", rowLabel: "项目名称", copyMsg: "已复制", btnImport: "导入", btnReset: "重置", confirmReset: "确认重置所有数据？", confirmOverwrite: "免费版只能保存1条。是否覆盖？", addRow: "+ 添加行", btnShare: "📱✉️ 分享", btnQR: "🔳 QR", btnCopyAll: "全部复制", calcTitle: "计算器", btnSave: "💾 保存",
                   btnHelp: "❓ 帮助", btnClose: "关闭", btnPrint: "打印", msgSave: "已保存", msgLoad: "已加载", confirmDel: "删除？", msgError: "错误", impTitle:"导入数据", impDesc:"粘贴代码:", btnLoad:"加载", memoTitle: "📝 备忘录",
                   proTitle: "Pro版功能 💎", proDesc: "编辑备忘录和全部复制是 Pro 版功能。", proBtn: "去商店", btnProLink: "🚀 如何获取Pro?",
                   shareMore: "... +{N}", memoHeader: "[ 备忘录 ]", editLinkText: "▽ 在 Simple Sheet 中编辑 ▽", msgExpire30: "*此链接有效期为30天。",
-                  memoLimit: "最多 2000 个字符", memoHintFree: "浏览模式 (编辑功能限Pro版)", memoHintPro: "备忘录 / URL / 食谱..."},
+                  memoLimit: "最多 2000 个字符", memoHintFree: "浏览模式 (编辑功能限Pro版)", memoHintPro: "备忘录 / URL / 食谱...",
+                  msgGenerating: "正在生成...", dialogShareTitle: "创建公开链接", dialogShareMsg: "知道此链接的任何人都可以查看此计算。\n是否继续？", dialogShareCheck: "不再显示", btnContinue: "继续", btnCancel: "取消" },
             ko: { title: "Simple Sheet", masterLabelName: "제목", baseName: "기준값", rowLabel: "항목 이름", copyMsg: "복사됨", btnImport: "가져오기", btnReset: "초기화", confirmReset: "전체 초기화하시겠습니까?", confirmOverwrite: "무료 버전은 1개만 저장 가능합니다. 덮어쓰시겠습니까?", addRow: "+ 행 추가", btnShare: "📱✉️ 공유", btnQR: "🔳 QR", btnCopyAll: "전체 복사", calcTitle: "계산기", btnSave: "💾 저장",
                   btnHelp: "❓ 도움말", btnClose: "닫기", btnPrint: "인쇄", msgSave: "저장됨", msgLoad: "로드됨", confirmDel: "삭제?", msgError: "오류", impTitle:"데이터 가져오기", impDesc:"코드 붙여넣기:", btnLoad:"로드", memoTitle: "📝 메모",
                   proTitle: "Pro 기능 💎", proDesc: "메모 작성 및 전체 복사는 Pro 기능입니다.", proBtn: "스토어로 이동", btnProLink: "🚀 Pro 버전 받기",
                   shareMore: "... +{N}", memoHeader: "[ 메모 ]", editLinkText: "▽ Simple Sheet에서 편집 ▽", msgExpire30: "*이 링크는 30일 동안 유효합니다.",
-                  memoLimit: "최대 2000자", memoHintFree: "보기 모드 (편집은 Pro 기능)", memoHintPro: "메모 / URL / 레시피..."},
+                  memoLimit: "최대 2000자", memoHintFree: "보기 모드 (편집은 Pro 기능)", memoHintPro: "메모 / URL / 레시피...",
+                  msgGenerating: "생성 중...", dialogShareTitle: "공개 링크 생성", dialogShareMsg: "링크를 아는 사람은 누구나 이 계산을 볼 수 있습니다.\n계속하시겠습니까?", dialogShareCheck: "다시 보지 않기", btnContinue: "계속", btnCancel: "취소" },
             es: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nombre del ítem", copyMsg: "¡Copiado!", btnImport: "Importar", btnReset: "Reiniciar", confirmReset: "¿Reiniciar todo?", confirmOverwrite: "Límite gratuito: 1 guardado. ¿Sobrescribir?", addRow: "+ Fila", btnShare: "📱✉️ Compartir", btnQR: "🔳 QR", btnCopyAll: "Copiar Todo", calcTitle: "Calculadora", btnSave: "💾 Guardar",
                   btnHelp: "❓ Ayuda", btnClose: "Cerrar", btnPrint: "Imprimir", msgSave: "¡Guardado!", msgLoad: "¡Cargado!", confirmDel: "¿Eliminar?", msgError: "Error", impTitle:"Importar", impDesc:"Pegar código:", btnLoad:"Cargar", memoTitle: "📝 Nota",
                   proTitle: "Función Pro 💎", proDesc: "Editar notas y Copiar Todo son funciones Pro.", proBtn: "Ir a la tienda", btnProLink: "🚀 Obtener Pro",
                   shareMore: "... +{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar en Simple Sheet ▽", msgExpire30: "*Este enlace es válido por 30 días.",
-                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo lectura (Editar es Pro)", memoHintPro: "Nota / Receta / URL..."},
+                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo lectura (Editar es Pro)", memoHintPro: "Nota / Receta / URL...",
+                  msgGenerating: "Generando...", dialogShareTitle: "Crear enlace público", dialogShareMsg: "Cualquiera con el enlace puede ver este cálculo.\n¿Continuar?", dialogShareCheck: "No mostrar de nuevo", btnContinue: "Continuar", btnCancel: "Cancelar" },
             pt: { title: "Simple Sheet", masterLabelName: "Título", baseName: "Base", rowLabel: "Nome do Item", copyMsg: "Copiado!", btnImport: "Importar", btnReset: "Reset", confirmReset: "Reiniciar tudo?", confirmOverwrite: "Limite gratuito: 1 salvamento. Sobrescrever?", addRow: "+ Linha", btnShare: "📱✉️ Compartilhar", btnQR: "🔳 QR", btnCopyAll: "Copiar Tudo", calcTitle: "Calculadora", btnSave: "💾 Salvar",
                   btnHelp: "❓ Ajuda", btnClose: "Fechar", btnPrint: "Imprimir", msgSave: "Salvo", msgLoad: "Carregado", confirmDel: "Excluir?", msgError: "Erro", impTitle:"Importar", impDesc:"Cole o código:", btnLoad:"Carregar", memoTitle: "📝 Nota",
                   proTitle: "Recurso Pro 💎", proDesc: "Editar notas e Copiar Tudo são recursos Pro.", proBtn: "Ir para loja", btnProLink: "🚀 Obter Pro",
                   shareMore: "... +{N}", memoHeader: "[ Nota ]", editLinkText: "▽ Editar no Simple Sheet ▽", msgExpire30: "*Este link é válido por 30 dias.",
-                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo visualização (Editar é Pro)", memoHintPro: "Nota / Receita / URL..."},
+                  memoLimit: "Máx. 2000 caracteres.", memoHintFree: "Modo visualização (Editar é Pro)", memoHintPro: "Nota / Receita / URL...",
+                  msgGenerating: "Gerando...", dialogShareTitle: "Criar link público", dialogShareMsg: "Qualquer pessoa com o link pode ver este cálculo.\nContinuar?", dialogShareCheck: "Não mostrar novamente", btnContinue: "Continuar", btnCancel: "Cancelar" },
             fr: { title: "Simple Sheet", masterLabelName: "Titre", baseName: "Base", rowLabel: "Nom de l'élément", copyMsg: "Copié !", btnImport: "Importer", btnReset: "Rétablir", confirmReset: "Tout réinitialiser ?", confirmOverwrite: "Limite gratuite: 1 sauvegarde. Écraser?", addRow: "+ Ligne", btnShare: "📱✉️ Partager", btnQR: "🔳 QR", btnCopyAll: "Tout Copier", calcTitle: "Calculatrice", btnSave: "💾 Enreg.",
                   btnHelp: "❓ Aide", btnClose: "Fermer", btnPrint: "Imprimer", msgSave: "Enregistré", msgLoad: "Chargé", confirmDel: "Supprimer ?", msgError: "Erreur", impTitle:"Importer", impDesc:"Coller code:", btnLoad:"Charger", memoTitle: "📝 Note",
                   proTitle: "Fonctionnalité Pro 💎", proDesc: "La note et Tout Copier sont des fonctions Pro.", proBtn: "Aller au store", btnProLink: "🚀 Obtenir Pro",
                   shareMore: "... +{N}", memoHeader: "[ Note ]", editLinkText: "▽ Modifier dans Simple Sheet ▽", msgExpire30: "*Ce lien est valide pendant 30 jours.",
-                  memoLimit: "2000 caractères max.", memoHintFree: "Mode lecture (L'édition est Pro)", memoHintPro: "Mémo / Recette / URL..."},
+                  memoLimit: "2000 caractères max.", memoHintFree: "Mode lecture (L'édition est Pro)", memoHintPro: "Mémo / Recette / URL...",
+                  msgGenerating: "Création...", dialogShareTitle: "Créer un lien public", dialogShareMsg: "Toute personne disposant du lien peut voir ce calcul.\nContinuer ?", dialogShareCheck: "Ne plus afficher", btnContinue: "Continuer", btnCancel: "Annuler" },
             ru: { title: "Simple Sheet", masterLabelName: "Название", baseName: "База", rowLabel: "Имя элемента", copyMsg: "Скопировано!", btnImport: "Импорт", btnReset: "Сброс", confirmReset: "Сбросить всё?", confirmOverwrite: "Бесплатный лимит: 1. Перезаписать?", addRow: "+ Ряд", btnShare: "📱✉️ Поделиться", btnQR: "🔳 QR", btnCopyAll: "Копировать все", calcTitle: "Калькулятор", btnSave: "💾 Сохр.",
                   btnHelp: "❓ Помощь", btnClose: "Закрыть", btnPrint: "Печать", msgSave: "Сохранено!", msgLoad: "Загружено!", confirmDel: "Удалить?", msgError: "Ошибка", impTitle:"Импорт", impDesc:"Вставьте код:", btnLoad:"Загрузить", memoTitle: "📝 Заметка",
                   proTitle: "Pro Версия 💎", proDesc: "Заметки и Копировать все — функции Pro.", proBtn: "В магазин", btnProLink: "🚀 Получить Pro",
                   shareMore: "... +{N}", memoHeader: "[ Заметка ]", editLinkText: "▽ Редактировать в Simple Sheet ▽", msgExpire30: "*Эта ссылка действительна 30 дней.",
-                  memoLimit: "Макс. 2000 символов.", memoHintFree: "Режим просмотра (Правка в Pro)", memoHintPro: "Заметка / Рецепт / URL..."},
+                  memoLimit: "Макс. 2000 символов.", memoHintFree: "Режим просмотра (Правка в Pro)", memoHintPro: "Заметка / Рецепт / URL...",
+                  msgGenerating: "Генерация...", dialogShareTitle: "Создать публичную ссылку", dialogShareMsg: "Любой, у кого есть ссылка, может просмотреть этот расчет.\nПродолжить?", dialogShareCheck: "Больше не показывать", btnContinue: "Продолжить", btnCancel: "Отмена" },
             de: { title: "Simple Sheet", masterLabelName: "Titel", baseName: "Basis", rowLabel: "Elementname", copyMsg: "Kopiert!", btnImport: "Import", btnReset: "Reset", confirmReset: "Alles zurücksetzen?", confirmOverwrite: "Kostenloses Limit: 1. Überschreiben?", addRow: "+ Zeile", btnShare: "📱✉️ Teilen", btnQR: "🔳 QR", btnCopyAll: "Alles Kopieren", calcTitle: "Rechner", btnSave: "💾 Speichern",
                   btnHelp: "❓ Hilfe", btnClose: "Schließen", btnPrint: "Drucken", msgSave: "Gespeichert!", msgLoad: "Geladen!", confirmDel: "Löschen?", msgError: "Fehler", impTitle:"Importieren", impDesc:"Code hier einfügen:", btnLoad:"Laden", memoTitle: "📝 Notiz",
                   proTitle: "Pro-Funktion 💎", proDesc: "Notizen und Alles Kopieren sind Pro-Funktionen.", proBtn: "Zum Store", btnProLink: "🚀 Pro holen",
                   shareMore: "... +{N}", memoHeader: "[ Notiz ]", editLinkText: "▽ In Simple Sheet bearbeiten ▽", msgExpire30: "*Dieser Link ist 30 Tage gültig.",
-                  memoLimit: "Max. 2000 Zeichen.", memoHintFree: "Ansichtsmodus (Bearbeiten ist Pro)", memoHintPro: "Notiz / Rezept / URL..."}
+                  memoLimit: "Max. 2000 Zeichen.", memoHintFree: "Ansichtsmodus (Bearbeiten ist Pro)", memoHintPro: "Notiz / Rezept / URL...",
+                  msgGenerating: "Wird erstellt...", dialogShareTitle: "Öffentlichen Link erstellen", dialogShareMsg: "Jeder mit dem Link kann diese Berechnung sehen.\nWeiter?", dialogShareCheck: "Nicht mehr anzeigen", btnContinue: "Weiter", btnCancel: "Abbrechen" }
         };
 
         async function init() {
@@ -483,7 +528,11 @@
                 showMsg("Loading...");
                 const data = await window.getFirebaseData(shareId);
                 if (data) {
-                    const createdAt = data.createdAt || 0;
+                    // ★ 30日チェック（過去の数字と新しいTimestampに対応） ★
+                    let createdAt = 0;
+                    if (data.createdAt) {
+                        createdAt = data.createdAt.seconds ? (data.createdAt.seconds * 1000) : data.createdAt;
+                    }
                     const now = Date.now();
                     const timeLimit = 30 * 24 * 60 * 60 * 1000;
 
@@ -552,107 +601,141 @@
             }
         }
 
-        async function showQR() {
-            showMsg("Generating QR...");
-            const data = getScreenData();
-            data.createdAt = Date.now(); 
-            
-            let shareUrl = "";
-            if (window.saveFirebaseData) {
-                const shortId = await window.saveFirebaseData(data);
-                if (shortId) {
-                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
-                }
+        // ★ 3. 初回シェア警告の管理ロジック ★
+        function handleShareClick(isQR) {
+            if (isSharing) return; // 連打防止ロック
+
+            const hasSeenWarning = localStorage.getItem('hasSeenShareWarning') === 'true';
+            const d = languageMap[currentLanguage] || languageMap['en'];
+
+            if (!hasSeenWarning) {
+                document.getElementById('swTitle').textContent = d.dialogShareTitle || "Create Public Link";
+                document.getElementById('swDesc').innerHTML = (d.dialogShareMsg || "Anyone with the link can view this calculation.\nContinue?").replace(/\n/g, '<br>');
+                document.getElementById('swCheckLabel').textContent = d.dialogShareCheck || "Don't show again";
+                document.getElementById('swBtnContinue').textContent = d.btnContinue || "Continue";
+                document.getElementById('swBtnCancel').textContent = d.btnCancel || "Cancel";
+
+                document.getElementById('swBtnContinue').onclick = () => {
+                    if (document.getElementById('swDontShowAgain').checked) {
+                        localStorage.setItem('hasSeenShareWarning', 'true');
+                    }
+                    closeModal('shareWarningModal');
+                    if (isQR) executeQR(); else executeShare();
+                };
+
+                document.getElementById('shareWarningModal').classList.add('active');
+            } else {
+                if (isQR) executeQR(); else executeShare();
             }
-            if (!shareUrl) {
-                const jsonString = JSON.stringify(data);
-                const compressed = LZString.compressToBase64(jsonString);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
-            }
-            
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
-            document.getElementById('qrImage').src = qrApiUrl;
-            document.getElementById('qrModal').classList.add('active');
         }
 
-        async function copyShare() { 
-            showMsg("Generating link...");
-            const d = languageMap[currentLanguage] || languageMap['en'];
-            const data = getScreenData();
-            data.createdAt = Date.now(); 
-
-            let shareUrl = "";
-            if (window.saveFirebaseData) {
-                const shortId = await window.saveFirebaseData(data);
-                if (shortId) {
-                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
-                }
-            }
-            if (!shareUrl) {
-                const jsonString = JSON.stringify(data);
-                const compressed = LZString.compressToBase64(jsonString);
-                shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
-            }
-
-            const title = data.n || 'Sheet';
-            const baseName = data.bn || d.baseName || 'Base';
-            const baseVal = document.getElementById('masterInput').value || '0';
-
-            let text = `${title}\n\n`;
-            text += `${baseName} : ${baseVal}\n`;
-
-            const itemsTextArr = [];
-            document.querySelectorAll('#rows-container .row').forEach(r => {
-                const label = r.querySelector('.text-label-input').value || '-';
-                const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
-                itemsTextArr.push(`${label} : ${val}`);
-            });
-
-            let lineCount = 0;
-            for (let i = 0; i < itemsTextArr.length; i++) {
-                if (lineCount < 5 && text.length < 200) {
-                    text += itemsTextArr[i] + "\n";
-                    lineCount++;
-                } else { break; }
-            }
-
-            if (itemsTextArr.length > lineCount) {
-                text += d.shareMore.replace('{N}', itemsTextArr.length - lineCount) + "\n";
-            }
-
-            // ★ メモの処理 ＆ URLの抽出 ★
-            const memo = document.getElementById('memoArea').value;
-            if (memo) {
-                text += `\n📝 `;
-                let previewMemo = memo.length > 40 ? memo.substring(0, 40).replace(/\n/g, ' ') + "..." : memo.replace(/\n/g, ' ');
-                text += previewMemo;
-
-                // メモの中にURLがあれば、最初の1つを必ず表示する
-                const urlRegex = /(https?:\/\/[^\s]+)/;
-                const match = memo.match(urlRegex);
-                if(match) {
-                    text += `\n🌍 ${match[0]}`;
-                }
-                text += "\n";
-            }
-
-            const expireMsg = d.msgExpire30 || "※This link is valid for 30 days.";
-            text += `\n${d.editLinkText}\n${shareUrl}\n\n${expireMsg}`;
-
-            // ★ ここから下がReddit行間対策！ ★
-            const plainText = text;
-            const htmlText = `<span>${escapeHtml(text).replace(/\n/g, '<br>')}</span>`;
-
+        async function executeQR() {
+            isSharing = true;
             try {
-                const item = new ClipboardItem({
-                    'text/plain': new Blob([plainText], { type: 'text/plain' }),
-                    'text/html': new Blob([htmlText], { type: 'text/html' })
+                showMsg(languageMap[currentLanguage].msgGenerating || "Generating QR...");
+                const data = getScreenData();
+                data.createdAt = Date.now(); // フォールバック(JSON)用のタイムスタンプ
+                
+                let shareUrl = "";
+                if (window.saveFirebaseData) {
+                    const shortId = await window.saveFirebaseData(data);
+                    if (shortId) {
+                        shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
+                    }
+                }
+                if (!shareUrl) {
+                    const jsonString = JSON.stringify(data);
+                    const compressed = LZString.compressToBase64(jsonString);
+                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
+                }
+                
+                const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
+                document.getElementById('qrImage').src = qrApiUrl;
+                document.getElementById('qrModal').classList.add('active');
+            } finally {
+                isSharing = false;
+            }
+        }
+
+        async function executeShare() { 
+            isSharing = true;
+            try {
+                showMsg(languageMap[currentLanguage].msgGenerating || "Generating link...");
+                const d = languageMap[currentLanguage] || languageMap['en'];
+                const data = getScreenData();
+                data.createdAt = Date.now(); // フォールバック(JSON)用のタイムスタンプ
+
+                let shareUrl = "";
+                if (window.saveFirebaseData) {
+                    const shortId = await window.saveFirebaseData(data);
+                    if (shortId) {
+                        shareUrl = `https://thejetdev.github.io/Simple-Sheet/?s=${shortId}&open=app`;
+                    }
+                }
+                if (!shareUrl) {
+                    const jsonString = JSON.stringify(data);
+                    const compressed = LZString.compressToBase64(jsonString);
+                    shareUrl = `https://thejetdev.github.io/Simple-Sheet/?data=SS1v1:${compressed}&open=app`;
+                }
+
+                const title = data.n || 'Sheet';
+                const baseName = data.bn || d.baseName || 'Base';
+                const baseVal = document.getElementById('masterInput').value || '0';
+
+                let text = `${title}\n\n`;
+                text += `${baseName} : ${baseVal}  \n`; // Android同様 Reddit用スペース2つ
+
+                const itemsTextArr = [];
+                document.querySelectorAll('#rows-container .row').forEach(r => {
+                    const label = r.querySelector('.text-label-input').value || '-';
+                    const val = r.querySelector('.result-text').textContent.replace(/,/g, '');
+                    itemsTextArr.push(`${label} : ${val}  `);
                 });
-                await navigator.clipboard.write([item]);
-                showMsg(d.copyMsg);
-            } catch (err) {
-                navigator.clipboard.writeText(plainText);
-                showMsg(d.copyMsg);
+
+                let lineCount = 0;
+                for (let i = 0; i < itemsTextArr.length; i++) {
+                    if (lineCount < 5 && text.length < 200) {
+                        text += itemsTextArr[i] + "\n";
+                        lineCount++;
+                    } else { break; }
+                }
+
+                if (itemsTextArr.length > lineCount) {
+                    text += d.shareMore.replace('{N}', itemsTextArr.length - lineCount) + "  \n";
+                }
+
+                const memo = document.getElementById('memoArea').value;
+                if (memo) {
+                    text += `\n📝 `;
+                    let previewMemo = memo.length > 40 ? memo.substring(0, 40).replace(/\n/g, ' ') + "..." : memo.replace(/\n/g, ' ');
+                    text += previewMemo + "  \n";
+
+                    const urlRegex = /(https?:\/\/[^\s]+)/;
+                    const match = memo.match(urlRegex);
+                    if(match) {
+                        text += `🌍 ${match[0]}  \n`;
+                    }
+                }
+
+                const expireMsg = d.msgExpire30 || "※This link is valid for 30 days.";
+                text += `\n▼ ${d.editLinkText} ▼  \n${shareUrl}  \n\n${expireMsg}`;
+
+                const plainText = text;
+                const htmlText = `<span>${escapeHtml(text).replace(/\n/g, '<br>')}</span>`;
+
+                try {
+                    const item = new ClipboardItem({
+                        'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                        'text/html': new Blob([htmlText], { type: 'text/html' })
+                    });
+                    await navigator.clipboard.write([item]);
+                    showMsg(d.copyMsg);
+                } catch (err) {
+                    navigator.clipboard.writeText(plainText);
+                    showMsg(d.copyMsg);
+                }
+            } finally {
+                isSharing = false;
             }
         }
 
@@ -757,7 +840,6 @@
             }
         }
 
-        // --- (以下の関数はそのままでOKです) ---
         function handleMemoClick() { if (!isPro) triggerProPromo(); }
         function handleSaveClick() { saveToMemory(); }
         function handleEditClick() { toggleEditMode(); }
@@ -778,7 +860,7 @@
 
             document.getElementById('btnReset').textContent = d.btnReset;
             document.getElementById('addBtn').textContent = d.addRow;
-            document.getElementById('copyShareBtn').textContent = d.btnShare; 
+            // document.getElementById('copyShareBtn').textContent = d.btnShare;  // 削除済み
             if(document.getElementById('qrBtn')) document.getElementById('qrBtn').textContent = d.btnQR || "🔳 QR";
             document.getElementById('ui-calcTitle').textContent = d.calcTitle;
             document.getElementById('btnSaveMemory').textContent = d.btnSave;
@@ -800,7 +882,6 @@
             
             document.querySelectorAll('.text-label-input').forEach(input => { input.placeholder = d.rowLabel; });
             
-            // ★ メモ帳の制限文字などのテキストも反映！
             document.getElementById('memoFreeWarning').textContent = d.memoHintFree;
             document.getElementById('memoLimitText').textContent = d.memoLimit;
             document.getElementById('memoArea').placeholder = isPro ? d.memoHintPro : d.memoHintFree;
@@ -988,9 +1069,9 @@
         }
 
         function addRow(s=null) {
-            // ★ スパム対策：100行を超えようとしたらブロック！
+            // ★ 4. 最大100行制限 ★
             if (document.querySelectorAll('#rows-container .row').length >= 100) {
-                showMsg("Max 100 rows"); return;
+                showMsg("Max 100 rows limit."); return;
             }
 
             const id = s && s.id ? s.id : Math.random().toString(36).substr(2, 5);
@@ -999,8 +1080,9 @@
             const isChain = s ? (s.baseMode==='chain') : true; 
             const val = s ? s.multiplier : '';
 
+            // ★ 4. input の maxlength="50" と、number の 15桁制限(oninput) を追加 ★
             div.innerHTML = `
-                <input type="text" class="text-label-input" placeholder="${ph}" value="${s?escapeHtml(s.label):''}" oninput="saveSettings()">
+                <input type="text" class="text-label-input" maxlength="50" placeholder="${ph}" value="${s?escapeHtml(s.label):''}" oninput="saveSettings()">
                 <div class="calc-area">
                     <div id="base-${id}" class="base-toggle ${isChain?'chain':''}" onclick="this.classList.toggle('chain');this.textContent=this.classList.contains('chain')?'🔗':'🏠';updateDisplay()">
                         ${isChain?'🔗':'🏠'}
@@ -1010,7 +1092,7 @@
                         <div class="operator-display" id="op-${id}">${s?escapeHtml(s.operator):'+'}</div>
                         <div class="operator-control" onclick="changeOp('${id}',-1)">▼</div>
                     </div>
-                    <input type="number" step="any" class="multiplier-input" value="${val}" placeholder="" oninput="updateDisplay()">
+                    <input type="number" step="any" class="multiplier-input" value="${val}" placeholder="" oninput="if(this.value.length > 15) this.value = this.value.slice(0, 15); updateDisplay();">
                     <div class="percent-toggle ${s&&s.isPercentActive?'active':''}" onclick="this.classList.toggle('active');updateDisplay()">%</div>
                 </div>
                 <div class="result-area">
