@@ -128,7 +128,6 @@
     </style>
     
     <script type="module">
-      /* ★ 5. serverTimestamp をインポートに追加 ★ */
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -153,7 +152,6 @@
         } catch (e) { return null; }
       };
 
-      /* ★ 5. Firestoreルールの完全準拠 (v: 1, serverTimestamp, expireAt, 文字数カット) ★ */
       window.saveFirebaseData = async (dataMap) => {
         try {
             const payload = {
@@ -347,7 +345,7 @@
                         <span style="font-weight:bold; color:#dc3545; margin-right:5px; font-size:1.2em;">🏠</span>
                         <input type="text" id="baseNameInput" maxlength="50" style="border:none; outline:none; font-weight:bold; color:#dc3545; width:100%; font-size:1.1em; background:transparent;" placeholder="Base" oninput="saveSettings()">
                     </div>
-                    <input type="number" id="masterInput" class="master-input" step="any" placeholder="" oninput="if(this.value.length > 15) this.value = this.value.slice(0, 15); updateDisplay();">
+                    <input type="text" inputmode="decimal" id="masterInput" class="master-input" placeholder="" oninput="formatNumberInput(this); updateDisplay();">
                 </div>
                 <div id="rows-container"></div>
                 
@@ -401,7 +399,6 @@
         let currentCalc = "0";
         let isLoading = false;
         
-        // ★ 2. スパム連打防止ロック ★
         let isSharing = false;
 
         function generateCheckCode(baseStr) {
@@ -415,39 +412,638 @@
             return Math.abs(hash).toString(16).substring(0, 4).toUpperCase().padStart(4, '0');
         }
 
+        // ★ カンマ挿入用関数（入力時リアルタイム処理） ★
+        function formatNumberInput(el) {
+            let cursor = el.selectionStart;
+            let origLen = el.value.length;
+            let v = el.value.replace(/,/g, '').replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/．/g, '.');
+            v = v.replace(/[^0-9.\-]/g, ''); // 数字、マイナス、ドット以外を除去
+            if (v !== '' && v !== '-' && v !== '.') {
+                let parts = v.split('.');
+                let intPart = parts[0];
+                if (intPart !== '' && intPart !== '-') {
+                    let num = parseInt(intPart, 10);
+                    if (!isNaN(num)) parts[0] = num.toLocaleString('en-US');
+                }
+                v = parts.length > 1 ? parts[0] + '.' + parts[1] : parts[0];
+            }
+            if (v.length > 15) v = v.slice(0, 15);
+            el.value = v;
+            let newLen = el.value.length;
+            cursor += (newLen - origLen);
+            try { el.setSelectionRange(cursor, cursor); } catch(e){}
+        }
+
+        // ★ 1. マニュアルの全言語完全同期（Android版と同じ最新テキスト） ★
         const manualBase = {
-            ja: "【 Simple Sheet の使い方 】\n電卓より整理できて、スプレッドシートほど複雑ではありません。\nSimple Sheet は、計算の「流れ」を残せるアプリです。\n\n【 計算モード 】\n🏠 元の数字\n一番上の「基準」の数字を使って計算します。\n🔗 チェーン\n一つ上の行の結果を引き継いで計算します。\n\n【 共有と出力 】\n📱✉️ Share（シェア）\n人に送る・一緒に見る\nShareを押すと、復元URL（※有効期限は30日間）とテキストがコピーされます。\n\n🔳 QR（QRコード）\n目の前の人と共有する・PCで開く\nQRを押すと、画面にQRコードが表示されます。（※有効期限は30日間）\n\n📋 Copy All（オールコピー）※Pro版\n保存・AI・データ用\nすべての計算データを省略せずにコピーします。\nこの機能で発行されるURLのみ【無期限】で保存用として使えます。\n\n【 💾 データの保存 】\n計算データを端末内に保存できます。\n無料版は1件のみ、Pro版は無制限に保存できます。\n\n【 読込（インポート） 】\nURLが開けない場合は、共有されたテキストをコピーして貼り付けてください。\n\n【 免責事項 】\nメモ欄の内容は投稿者によるものです。共有リンクの利用はご自身の責任でお願いいたします。",
-            en: "【 How to use Simple Sheet 】\nMore organized than a calculator, less complex than a spreadsheet.\n\n【 Calculation Mode 】\n🏠 Base Number\nCalculates using the top \"Base\" number.\n🔗 Chain\nCalculates by carrying over the result from the row above.\n\n【 Share & Export 】\n📱✉️ Share\nSend to others & view together.\nGenerates a text summary and a URL (*Valid for 30 days).\n\n🔳 QR\nShare in person & open on PC.\nDisplays a QR code instantly (*Valid for 30 days).\n\n📋 Copy All *Pro Edition\nFor Saving, AI, and Data.\nCopies everything without omission. The URL generated here is [Permanent].\n\n【 💾 Data Save 】\nSave data locally on your device.\nFree version allows 1 save. Pro version is unlimited.\n\n【 Import 】\nIf a URL doesn't work, paste the shared text here to restore.\n\n【 Disclaimer 】\nPlease use shared links at your own discretion and responsibility.",
-            zh: "【 Simple Sheet 使用说明 】\n比计算器更有条理，又不像电子表格那样复杂。\n\n【 计算模式 】\n🏠 基准数字: 使用最上方的数字进行计算。\n🔗 链式计算: 继承上一行的结果进行计算。\n\n【 分享与导出 】\n📱✉️ Share（分享）: 生成带有30天有效期的 URL。\n🔳 QR（二维码）: 面对面分享（30天有效期）。\n📋 Copy All（全部复制）※Pro 版: 用于保存、AI 和数据导出。此功能生成的 URL 是【永久有效】的。\n\n【 💾 数据保存 】\n免费版可保存1条，Pro版无限制。\n\n【 免责声明 】\n请您自行决定并承担使用共享链接的责任。",
-            ko: "【 Simple Sheet 사용법 】\n계산기보다 정리하기 쉽고, 스프레드시트만큼 복잡하지 않습니다.\n\n【 계산 모드 】\n🏠 기준 숫자: 맨 위의 숫자를 사용하여 계산합니다.\n🔗 체인: 바로 윗줄의 결과를 이어받아 계산합니다.\n\n【 공유 및 내보내기 】\n📱✉️ Share (공유): 30일 유효한 URL을 생성합니다.\n🔳 QR: 눈앞의 사람과 공유합니다(30일 유효).\n📋 Copy All (전체 복사) ※Pro 버전: 저장, AI, 데이터용. 이 기능으로 생성된 URL만 【무기한】입니다.\n\n【 💾 데이터 저장 】\n무료 버전은 1개만 저장 가능, Pro 버전은 무제한입니다.\n\n【 면책 조항 】\n공유된 링크 사용은 본인의 판단과 책임하에 이용해 주시기 바랍니다.",
-            es: "【 Cómo usar Simple Sheet 】\nMás organizado que una calculadora, menos complejo que una hoja de cálculo.\n\n【 Modo de cálculo 】\n🏠 Número base: Calcula con el número superior.\n🔗 Cadena: Calcula con el resultado de la fila anterior.\n\n【 Compartir y Exportar 】\n📱✉️ Share: Genera una URL válida por 30 días.\n🔳 QR: Compartir en persona (válido por 30 días).\n📋 Copy All *Edición Pro: Para guardar, IA y datos. La URL generada aquí es [Permanente].\n\n【 💾 Guardar datos 】\nLa versión gratuita permite 1 guardado. La versión Pro es ilimitada.\n\n【 Descargo de responsabilidad 】\nUtilice los enlaces compartidos bajo su propia responsabilidad.",
-            pt: "【 Como usar o Simple Sheet 】\nMais organizado que uma calculadora, menos complexo que uma planilha.\n\n【 Modo de Cálculo 】\n🏠 Número Base: Calcula usando o número no topo.\n🔗 Corrente: Calcula usando o resultado da linha acima.\n\n【 Compartilhar e Exportar 】\n📱✉️ Share: Gera uma URL válida por 30 dias.\n🔳 QR: Compartilhe pessoalmente (válido por 30 dias).\n📋 Copy All *Versão Pro: Para salvar, IA e dados. A URL gerada aqui é [Permanente].\n\n【 💾 Salvar Dados 】\nA versão gratuita permite 1 salvamento. A versão Pro é ilimitada.\n\n【 Aviso Legal 】\nUse os links compartilhados por sua própria conta e risco.",
-            fr: "【 Comment utiliser Simple Sheet 】\nPlus organisé qu'une calculatrice, moins complexe qu'un tableur.\n\n【 Mode de calcul 】\n🏠 Nombre de base: Calcule avec le nombre en haut.\n🔗 Chaîne: Calcule avec le résultat de la ligne précédente.\n\n【 Partager et Exporter 】\n📱✉️ Share: Génère une URL valable 30 jours.\n🔳 QR: Partager en personne (valable 30 jours).\n📋 Copy All *Édition Pro: Pour la sauvegarde, l'IA. L'URL générée ici est [Permanente].\n\n【 💾 Sauvegarder les données 】\nLa version gratuite permet 1 sauvegarde. La version Pro est illimitée.\n\n【 Clause de non-responsabilité 】\nVeuillez utiliser les liens partagés à votre propre responsabilité.",
-            ru: "【 Как использовать Simple Sheet 】\nОрганизованнее, чем калькулятор, и не так сложно, как таблица.\n\n【 Режим вычислений 】\n🏠 Базовое число: Вычисляет с использованием верхнего числа.\n🔗 Цепочка: Вычисляет с использованием результата предыдущей строки.\n\n【 Поделиться и Экспорт 】\n📱✉️ Share: Создает URL на 30 дней.\n🔳 QR: Поделиться лично (на 30 дней).\n📋 Copy All *Pro Версия: Для сохранения, ИИ и данных. Этот URL является [Постоянным].\n\n【 💾 Сохранение данных 】\nБесплатная версия: 1 сохранение. Pro версия: без ограничений.\n\n【 Отказ от ответственности 】\nИспользуйте общие ссылки под свою ответственность.",
-            de: "【 So verwenden Sie Simple Sheet 】\nBesser organisiert als ein Taschenrechner, weniger komplex als eine Tabellenkalkulation.\n\n【 Berechnungsmodus 】\n🏠 Basiszahl: Berechnet mit der oberen Zahl.\n🔗 Kette: Berechnet mit dem Ergebnis der vorherigen Zeile.\n\n【 Teilen und Exportieren 】\n📱✉️ Share: Generiert eine URL (30 Tage gültig).\n🔳 QR: Persönlich teilen (30 Tage gültig).\n📋 Copy All *Pro-Version: Für Speicherung, KI. Die hier generierte URL ist [Dauerhaft].\n\n【 💾 Daten speichern 】\nKostenlose Version erlaubt 1 Speicherung. Pro-Version ist unbegrenzt.\n\n【 Haftungsausschluss 】\nBitte verwenden Sie geteilte Links auf eigene Verantwortung."
+            en: `【 How to use Simple Sheet 】
+More organized than a calculator, less complex than a spreadsheet.
+Simple Sheet is an app that lets you keep the "flow" of your calculations.
+It uses just the 4 basic operations: add, subtract, multiply, and divide.
+
+【 Calculation Mode 】
+Tap the button to switch the calculation base.
+🏠 Base Number
+Calculates using the top "Base" number.
+🔗 Chain
+Calculates by carrying over the result from the row above.
+
+【 Share & Export 】
+Simple Sheet allows you to send calculations exactly as they are.
+
+📱✉️ Share
+Send to others & view together
+Use this to share calculations via messaging apps, email, or SNS.
+Tapping Share automatically copies two things:
+- A text summary of up to 5 rows of progress
+- A URL to restore the calculation (*Valid for 30 days)
+The recipient just taps the URL to open the same calculation sheet.
+They can review the contents or edit it for their own use.
+
+🔳 QR
+Share in person & open on PC
+Tapping QR displays a QR code on the screen.
+Just have the person in front of you scan it with their smartphone camera to instantly share the sheet.
+It's also highly convenient to scan it with your own PC to check it on a larger screen or paste the data into Excel.
+(*The sheet opened from the QR code is also valid for 30 days)
+
+【 💾 Data Save 】
+Save calculation data (title, rows, memo) locally on your device.
+Free version allows 1 save. Pro users can remove this limit to save multiple sheets.
+⚠️ Note: Data is saved strictly on this browser. If you change devices or clear browser history, the data will be erased and cannot be transferred.
+
+【 💡 Handy PC Integration Technique 】
+Simple Sheet doesn't require an account, but linking your phone and PC is very easy.
+
+1. Tap "📱✉️ Share" on your phone.
+2. Paste the generated URL into a cloud-synced app like "Google Keep" or "Notion".
+3. Just click the URL on your PC, and the calculation sheet will instantly open in your browser!
+
+(*If you want non-expiring links for long-term saving or want to paste directly into Excel, please use "📋 Copy All" in the Pro Edition.)
+
+【 📝 Memo 】*Pro Edition
+Leave notes on your calculation sheet.
+Freely write down recipes, URLs, or additional explanations and save them.
+(Free version users can only "read" shared memos.)
+
+📋 Copy All *Pro Edition
+For Saving, AI, and Data
+Copies all calculation data without omission. The "Restore Link" generated by this feature has the data directly embedded in it, making it [Non-expiring] for saving purposes.
+Copied content:
+- All calculation results
+- Memos
+- Non-expiring restore link
+Pasting into Excel automatically creates a 3-column table.
+Also useful for feeding calculations into AI like ChatGPT.
+
+【 Import 】
+Usually, just opening a shared URL automatically restores the sheet.
+If you want to restore manually, copy the dedicated data text generated by "📋 Copy All" etc. and paste it here. Even if it contains greetings or other text, the app will extract only the data and restore it.
+⚠️ Note: Pasting the standard text summary (5 rows) generated by "Share" will not restore the calculation sheet.
+
+【 Disclaimer 】
+Shared links can be viewed by anyone who knows the URL. The developer is not responsible for any damages caused by entering or sharing confidential information. Please use at your own risk. Furthermore, data deemed inappropriate may be deleted without notice.`,
+            ja: `【 Simple Sheet の使い方 】
+電卓より整理できて、スプレッドシートほど複雑ではありません。
+Simple Sheet は、計算の「流れ」を残せるアプリです。
+足す、引く、掛ける、割る。この4つの基本計算だけで使えます。
+
+【 計算モード 】
+ボタンをタップして、計算の基準を切り替えます。
+🏠 元の数字
+一番上の「基準」の数字を使って計算します。
+🔗 チェーン
+一つ上の行の結果を引き継いで計算します。
+
+【 共有と出力 】
+Simple Sheet では、計算をそのまま人に送ることができます。
+
+📱✉️ Share（シェア）
+人に送る・一緒に見る
+LINE、メール、SNSなどで計算を共有する時に使います。
+Shareを押すと、次の2つが自動でコピーされます。
+・途中経過を5行にまとめたテキスト
+・計算を復元できるURL（※有効期限は30日間です）
+相手はURLをタップするだけで、同じ計算シートを開くことができます。
+内容を確認したり、自分用に編集して使うこともできます。
+
+🔳 QR（QRコード）
+目の前の人と共有する・PCで開く
+QRを押すと、画面にQRコードが表示されます。
+目の前にいる相手のスマホカメラで読み取ってもらうだけで、すぐにシートを共有できます。
+また、自分のPCで読み取って大きな画面で確認したり、データをExcelに貼り付けたりする時にも非常に便利です。
+（※QRコードから開くシートの有効期限も30日間です）
+
+【 💾 データの保存 】
+計算データ（タイトル、各行の計算、メモ）を保存できます。
+無料版は1件のみ保存可能。Pro版なら保存枠の制限が解除されます。
+⚠️ 注意事項：データはこのブラウザ内にのみ保存されます。機種変更やブラウザのキャッシュ（履歴）削除を行うとデータは消去され、引き継ぐことはできません。
+
+【 💡 PCとの便利な連携テクニック 】
+Simple Sheetにはアカウント登録がありませんが、スマホとPCの連携はとても簡単です。
+
+1. スマホで「📱✉️ Share」を押します。
+2. 発行されたURLを、「Google Keep」や「LINEのKeepメモ」など、PCと同期しているアプリに貼り付けます。
+3. PC側でそのURLをクリックするだけで、ブラウザ上に計算シートが再現されます！
+
+（※URLの有効期限をなくして長期保存したい場合や、Excelに表のまま貼り付けたい場合は、Pro版の「📋 Copy All」をご活用ください。）
+
+【 📝 メモ帳 】※Pro版
+計算シートにメモを残すことができます。
+レシピ、URL、補足説明などを自由に書き込んで保存できます。
+（無料版では、共有されたメモを「読む」ことのみ可能です）
+
+📋 Copy All（オールコピー）※Pro版
+保存・AI・データ用
+すべての計算データを省略せずにコピーします。この機能で発行される「復元用リンク」にはデータが直接埋め込まれているため、【期限設定なし】で長期保存用として使えます。
+コピーされる内容：
+・すべての計算結果
+・メモ
+・期限設定なしの復元用リンク
+Excelに貼り付けると、自動で3列の表になります。
+ChatGPTなどのAIに計算を読み込ませる時にも使えます。
+
+【 読込（インポート） 】
+通常は共有されたURLを開くだけで、シートが自動で復元されます。
+もし手動で復元したい場合は、「📋 Copy All」等で出力された専用のデータテキストをここに貼り付けてください。前後に挨拶文などが含まれていても、アプリがデータだけを抽出して復元します。
+⚠️注意：通常の「シェア」で作成されるテキスト（5行のまとめ）を貼り付けても、計算シートは再現されません。
+
+【 免責事項 】
+共有リンクはURLを知る全員が閲覧可能です。機密情報の入力や共有によって生じた損害について、開発者は一切の責任を負いません。ご利用はご自身の責任で行ってください。また、不適切と判断されるデータは予告なく削除する場合があります。`,
+            zh: `【 Simple Sheet 使用说明 】
+比计算器更有条理，又不像电子表格那样复杂。
+Simple Sheet 是一款能让您保留计算“流程”的应用程序。
+只需使用加、减、乘、除 4 种基本运算即可。
+
+【 计算模式 】
+点击按钮切换计算基准。
+🏠 基准数字
+使用最上方的“基准”数字进行计算。
+🔗 链式计算
+继承上一行的结果进行计算。
+
+【 分享与导出 】
+Simple Sheet 允许您直接将计算过程发送给他人。
+
+📱✉️ Share（分享）
+发送给他人 / 一起查看
+用于通过聊天软件、电子邮件或社交网络分享计算。
+点击 Share 后，将自动复制以下两项：
+・包含前 5 行计算过程的文本摘要
+・用于恢复计算的 URL（※有效期为 30 天）
+对方只需点击 URL 即可打开相同的计算表。
+他们可以查看内容或对其进行编辑供自己使用。
+
+🔳 QR（二维码）
+面对面分享 / 在电脑上打开
+点击 QR 会在屏幕上显示二维码。
+只需让面前的人用手机摄像头扫描，即可快速分享表格。
+您也可以用自己的电脑扫描它以在更大的屏幕上查看或将数据粘贴到Excel中。
+（※通过二维码打开的表格有效期同样为 30 天）
+
+【 💾 数据保存 】
+将计算数据（标题、各行计算、备忘录）保存在设备本地。
+免费版可保存1条，Pro版解除保存限制。
+⚠️ 注意：数据仅保存在此浏览器中。如果更换设备或清除浏览器历史记录，数据将被清除，无法迁移。
+
+【 💡 便捷的电脑同步技巧 】
+Simple Sheet 无需注册账号，但手机与电脑的同步非常简单。
+
+1. 在手机上点击“📱✉️ Share”。
+2. 将生成的 URL 粘贴到与电脑同步的应用程序中（例如“Google Keep”或“微信/QQ的文件传输助手”）。
+3. 在电脑端点击该 URL，计算表就会立即在浏览器中打开！
+
+（※如果您希望链接无到期时间以便长期保存，或想直接粘贴到 Excel 表格中，请使用 Pro 版的“📋 Copy All”功能。）
+
+【 📝 备忘录 】※Pro 版
+在计算表上留下笔记。
+您可以自由写下食谱、URL 或其他说明并保存。
+（免费版用户只能“阅读”共享的备忘录）
+
+📋 Copy All（全部复制）※Pro 版
+用于保存、AI 和数据导出
+复制所有计算数据，不省略任何内容。此功能生成的“恢复链接”中直接嵌入了数据，因此具有【无到期时间】的长期保存作用。
+复制的内容：
+・所有计算结果
+・备忘录
+・无过期时间的恢复链接
+粘贴到 Excel 会自动生成 3 列的表格。
+也可用于将计算数据输入给 ChatGPT 等 AI。
+
+【 导入 】
+通常，只需打开共享的 URL 即可自动恢复表格。
+如果需要手动恢复，请复制由“📋 Copy All”等生成的专用数据文本并粘贴到此处。即使文本中包含问候语等，应用程序也会自动提取数据并恢复。
+⚠️注意：粘贴通过常规“Share”生成的文本摘要（5行）将无法恢复计算表。
+
+【 免责声明 】
+知道链接的任何人都可以查看共享链接。对于因输入或共享机密信息而造成的任何损失，开发者不承担任何责任。请自行承担使用风险。此外，被认为不适当的数据可能会在不另行通知的情况下被删除。`,
+            ko: `【 Simple Sheet 사용법 】
+계산기보다 정리하기 쉽고, 스프레드시트만큼 복잡하지 않습니다.
+Simple Sheet는 계산의 "흐름"을 남길 수 있는 앱입니다.
+더하기, 빼기, 곱하기, 나누기 4가지 기본 계산만으로 사용할 수 있습니다.
+
+【 계산 모드 】
+버튼을 탭하여 계산 기준을 전환합니다.
+🏠 기준값
+맨 위의 "기준값"을 사용하여 계산합니다.
+🔗 체인
+바로 위 행의 결과를 이어받아 계산합니다.
+
+【 공유 및 출력 】
+Simple Sheet에서는 계산 과정을 그대로 다른 사람에게 보낼 수 있습니다.
+
+📱✉️ Share (공유)
+다른 사람에게 보내기 / 함께 보기
+LINE, 이메일, SNS 등으로 계산을 공유할 때 사용합니다.
+Share를 누르면 다음 2가지가 자동으로 복사됩니다.
+・진행 상황을 5줄로 요약한 텍스트
+・계산을 복원할 수 있는 URL (※유효기간은 30일입니다)
+상대방은 URL을 탭하기만 하면 같은 계산 시트를 열 수 있습니다.
+내용을 확인하거나 자신에 맞게 편집하여 사용할 수 있습니다.
+
+🔳 QR
+눈앞의 사람과 공유 / PC에서 열기
+QR을 누르면 화면에 QR 코드가 표시됩니다.
+눈앞에 있는 사람이 스마트폰 카메라로 스캔하기만 하면 즉시 시트를 공유할 수 있습니다.
+자신의 PC로 스캔하여 더 큰 화면에서 확인하거나 Excel에 데이터를 붙여넣을 때도 매우 편리합니다.
+(※QR 코드로 여는 시트의 유효기간도 30일입니다)
+
+【 💾 데이터 저장 】
+계산 데이터(제목, 각 행의 계산, 메모)를 로컬에 저장할 수 있습니다.
+무료 버전은 1개만 저장 가능, Pro 버전은 저장 제한이 해제됩니다.
+⚠️ 주의사항: 데이터는 이 브라우저에만 저장됩니다. 기기를 변경하거나 브라우저 기록을 지우면 데이터가 삭제되며 이전할 수 없습니다.
+
+【 💡 편리한 PC 연동 팁 】
+Simple Sheet는 계정 가입이 필요 없지만 스마트폰과 PC 연동이 매우 쉽습니다.
+
+1. 스마트폰에서 "📱✉️ Share"를 누릅니다.
+2. 생성된 URL을 "Google Keep"이나 "카카오톡 나에게 쓰기" 등 PC와 동기화되는 앱에 붙여넣습니다.
+3. PC에서 해당 URL을 클릭하기만 하면 브라우저에 계산 시트가 바로 열립니다!
+
+(※URL의 유효기간 없이 장기 보존하거나 Excel에 표 형태로 붙여넣고 싶다면 Pro 버전의 "📋 Copy All"을 활용해 주세요.)
+
+【 📝 메모 】※Pro 기능
+계산 시트에 메모를 남길 수 있습니다.
+레시피, URL, 추가 설명 등을 자유롭게 적고 저장하세요.
+(무료 버전 사용자는 공유된 메모를 '읽기'만 가능합니다.)
+
+📋 Copy All (전체 복사) ※Pro 기능
+저장, AI, 데이터용
+모든 계산 데이터를 누락 없이 복사합니다. 이 기능으로 생성된 "복원 링크"에는 데이터가 직접 포함되어 있어 저장을 위해 【기한 제한 없이】 장기 보존용으로 사용할 수 있습니다.
+복사되는 내용:
+・모든 계산 결과
+・메모
+・기한 제한 없는 복원 링크
+Excel에 붙여넣으면 3열 표가 자동으로 만들어집니다.
+ChatGPT와 같은 AI에 계산을 입력할 때도 유용합니다.
+
+【 가져오기 (Import) 】
+일반적으로 공유된 URL을 열기만 하면 시트가 자동으로 복원됩니다.
+수동으로 복원하려면 "📋 Copy All" 등으로 생성된 전용 데이터 텍스트를 복사하여 여기에 붙여넣으세요. 인사말 등이 포함되어 있어도 앱이 데이터만 추출하여 복원합니다.
+⚠️주의: 일반 "Share"로 생성된 텍스트 요약(5줄)을 붙여넣으면 계산 시트가 복원되지 않습니다.
+
+【 면책 조항 】
+공유 링크는 URL을 아는 누구나 볼 수 있습니다. 기밀 정보 입력 또는 공유로 인해 발생하는 모든 피해에 대해 개발자는 어떠한 책임도 지지 않습니다. 본인의 책임 하에 사용하시기 바랍니다. 또한, 부적절하다고 판단되는 데이터는 예고 없이 삭제될 수 있습니다.`,
+            es: `【 Cómo usar Simple Sheet 】
+Más organizado que una calculadora, menos complejo que una hoja de cálculo.
+Simple Sheet es una aplicación que te permite guardar el "flujo" de tus cálculos.
+Utiliza solo las 4 operaciones básicas: sumar, restar, multiplicar y dividir.
+
+【 Modo de cálculo 】
+Toca el botón para cambiar la base del cálculo.
+🏠 Número base
+Calcula utilizando el número "Base" en la parte superior.
+🔗 Cadena
+Calcula arrastrando el resultado de la fila anterior.
+
+【 Compartir y Exportar 】
+Simple Sheet te permite enviar los cálculos tal y como están.
+
+📱✉️ Share (Compartir)
+Enviar a otros y ver juntos
+Úsalo para compartir cálculos mediante aplicaciones de mensajería, correo o redes sociales.
+Al tocar Share, se copiarán automáticamente dos cosas:
+- Un resumen en texto de hasta 5 filas del progreso.
+- Una URL para restaurar el cálculo (*Válida por 30 días).
+El destinatario solo tiene que tocar la URL para abrir la misma hoja de cálculo.
+Pueden revisar el contenido o editarlo para su propio uso.
+
+🔳 QR
+Compartir en persona y abrir en PC
+Al tocar QR, se muestra un código QR en la pantalla.
+Haz que la persona frente a ti lo escanee con su teléfono para compartir la hoja al instante.
+También es muy útil escanearlo con tu PC para revisarlo en una pantalla grande o pegarlo en Excel.
+(*La hoja abierta desde el código QR también es válida por 30 días)
+
+【 💾 Guardar datos 】
+Guarda los datos de cálculo (título, filas, notas) localmente.
+La versión gratuita permite 1 guardado. La versión Pro elimina este límite.
+⚠️ Nota: Los datos se guardan estrictamente en este navegador. Si cambias de dispositivo o borras el historial del navegador, los datos se borrarán y no se podrán transferir.
+
+【 💡 Práctico truco de integración con PC 】
+Simple Sheet no requiere una cuenta, pero vincular tu teléfono y PC es muy fácil.
+
+1. Toca "📱✉️ Share" en tu teléfono.
+2. Pega la URL generada en una aplicación sincronizada en la nube como "Google Keep" o "WhatsApp".
+3. ¡Simplemente haz clic en la URL en tu PC y la hoja de cálculo se abrirá en tu navegador!
+
+(*Si deseas enlaces sin caducidad para guardar a largo plazo o quieres pegar los datos directamente en Excel, utiliza "📋 Copy All" en la Edición Pro.)
+
+【 📝 Bloc de notas 】*Edición Pro
+Deja notas en tu hoja de cálculo.
+Escribe libremente recetas, URLs o explicaciones adicionales y guárdalos.
+(Los usuarios de la versión gratuita solo pueden "leer" las notas compartidas).
+
+📋 Copy All (Copiar todo) *Edición Pro
+Para guardar, IA y datos
+Copia todos los datos del cálculo sin omitir nada. El "Enlace de restauración" generado por esta función tiene los datos incrustados directamente, por lo que [No tiene caducidad] para copias a largo plazo.
+Contenido copiado:
+- Todos los resultados de los cálculos
+- Notas
+- Enlace de restauración sin caducidad
+Al pegar en Excel se crea automáticamente una tabla de 3 columnas.
+También es útil para alimentar con cálculos a IA como ChatGPT.
+
+【 Importar 】
+Normalmente, al abrir una URL compartida se restaura la hoja automáticamente.
+Si quieres restaurar manualmente, copia el texto de datos dedicado generado por "📋 Copy All" y pégalo aquí. Aunque contenga saludos u otros textos, la app extraerá solo los datos y los restaurará.
+⚠️ Nota: Al pegar el resumen de texto estándar (5 filas) generado por "Share", no se restaurará la hoja de cálculo.
+
+【 Descargo de responsabilidad 】
+Los enlaces compartidos pueden ser vistos por cualquiera que conozca la URL. El desarrollador no se hace responsable de los daños causados por introducir o compartir información confidencial. Úsalo bajo tu propio riesgo. Además, los datos que se consideren inapropiados podrán ser eliminados sin previo aviso.`,
+            pt: `【 Como usar o Simple Sheet 】
+Mais organizado que uma calculadora, menos complexo que uma planilha.
+Simple Sheet é um aplicativo que permite manter o "fluxo" de seus cálculos.
+Usa apenas as 4 operações básicas: somar, subtrair, multiplicar e dividir.
+
+【 Modo de Cálculo 】
+Toque no botão para alterar a base do cálculo.
+🏠 Número Base
+Calcula usando o número "Base" na parte superior.
+🔗 Corrente
+Calcula transportando o resultado da linha acima.
+
+【 Compartilhar e Exportar 】
+Simple Sheet permite enviar cálculos exatamente como estão.
+
+📱✉️ Share (Compartilhar)
+Enviar a outros e ver juntos
+Use para compartilhar cálculos por apps de mensagens, email ou redes sociais.
+Tocar em Share copia automaticamente duas coisas:
+- Um resumo em texto de até 5 linhas do progresso
+- Uma URL para restaurar o cálculo (*Válida por 30 dias)
+O destinatário só precisa tocar na URL para abrir a mesma planilha.
+Eles podem revisar o conteúdo ou editá-lo para uso próprio.
+
+🔳 QR
+Compartilhar pessoalmente e abrir no PC
+Tocar em QR exibe um código QR na tela.
+Basta que a pessoa na sua frente escaneie com a câmera do celular para compartilhar a planilha instantaneamente.
+Também é muito prático escanear com o seu próprio PC para conferir em uma tela maior ou colar os dados no Excel.
+(*A planilha aberta pelo código QR também é válida por 30 dias)
+
+【 💾 Salvar Dados 】
+Salve dados de cálculo (título, linhas, notas) localmente.
+A versão gratuita permite 1 salvamento. A versão Pro remove esse limite.
+⚠️ Nota: Os dados são salvos estritamente neste navegador. Se você trocar de dispositivo ou limpar o histórico do navegador, os dados serão apagados e não poderão ser transferidos.
+
+【 💡 Dica prática de integração com PC 】
+O Simple Sheet não exige uma conta, mas vincular seu celular e PC é muito fácil.
+
+1. Toque em "📱✉️ Share" no seu celular.
+2. Cole a URL gerada em um aplicativo sincronizado na nuvem, como "Google Keep" ou "WhatsApp".
+3. Basta clicar na URL no seu PC e a planilha de cálculo abrirá no seu navegador!
+
+(*Se você deseja links sem expiração para salvar a longo prazo ou quer colar diretamente no Excel, use "📋 Copy All" na Edição Pro.)
+
+【 📝 Bloco de Notas 】*Versão Pro
+Deixe anotações na sua planilha de cálculo.
+Escreva livremente receitas, URLs ou explicações adicionais e salve-os.
+(Usuários da versão gratuita só podem "ler" as notas compartilhadas).
+
+📋 Copy All (Copiar Tudo) *Versão Pro
+Para salvar, IA e exportar dados
+Copia todos os dados de cálculo sem omitir nada. O "Link de Restauração" gerado por esse recurso possui os dados diretamente incorporados, tornando-o [Sem expiração] para backups de longo prazo.
+Conteúdo copiado:
+- Todos os resultados dos cálculos
+- Notas
+- Link de restauração sem expiração
+Colar no Excel cria automaticamente uma tabela de 3 colunas.
+Também é útil para alimentar IA, como o ChatGPT, com seus cálculos.
+
+【 Importar 】
+Geralmente, abrir uma URL compartilhada restaura a planilha automaticamente.
+Se quiser restaurar manualmente, copie o texto de dados dedicado gerado pelo "📋 Copy All" e cole-o aqui. Mesmo que contenha saudações ou outros textos, o aplicativo extrairá apenas os dados e fará a restauração.
+⚠️ Nota: Colar o resumo de texto padrão (5 linhas) gerado pelo "Share" não restaurará a planilha de cálculo.
+
+【 Aviso Legal 】
+Links compartilhados podem ser vistos por qualquer pessoa que conheça a URL. O desenvolvedor não se responsabiliza por quaisquer danos causados pela inserção ou compartilhamento de informações confidenciais. Use por sua própria conta e risco. Além disso, dados considerados inadequados podem ser excluídos sem aviso prévio.`,
+            fr: `【 Comment utiliser Simple Sheet 】
+Plus organisé qu'une calculatrice, moins complexe qu'un tableur.
+Simple Sheet est une application qui vous permet de conserver le "flux" de vos calculs.
+Elle n'utilise que les 4 opérations de base : additionner, soustraire, multiplier et diviser.
+
+【 Mode de calcul 】
+Appuyez sur le bouton pour changer la base de calcul.
+🏠 Nombre de base
+Calcule en utilisant le nombre « Base » en haut.
+🔗 Chaîne
+Calcule en reportant le résultat de la ligne supérieure.
+
+【 Partager et Exporter 】
+Simple Sheet vous permet d'envoyer des calculs tels quels.
+
+📱✉️ Share (Partager)
+Envoyer aux autres & voir ensemble
+Utilisez ceci pour partager via les applications de messagerie, e-mail ou réseaux sociaux.
+Appuyer sur Share copie automatiquement deux éléments :
+- Un résumé textuel de l'avancement (jusqu'à 5 lignes)
+- Une URL pour restaurer le calcul (*Valable pendant 30 jours)
+Le destinataire n'a qu'à appuyer sur l'URL pour ouvrir la même feuille de calcul.
+Il peut consulter le contenu ou le modifier pour son propre usage.
+
+🔳 QR
+Partager en personne & ouvrir sur PC
+Appuyer sur QR affiche un code QR à l'écran.
+Faites-le scanner par la personne devant vous avec son smartphone pour partager instantanément.
+C'est aussi très pratique de le scanner avec votre PC pour vérifier sur un grand écran ou coller les données dans Excel.
+(*La feuille ouverte depuis le code QR est également valable pendant 30 jours)
+
+【 💾 Sauvegarder les données 】
+Enregistrez les calculs (titre, lignes, mémo) localement.
+La version gratuite permet 1 sauvegarde. La version Pro supprime cette limite.
+⚠️ Remarque : Les données sont enregistrées strictement sur ce navigateur. Si vous changez d'appareil ou effacez l'historique de votre navigateur, les données seront effacées et ne pourront être transférées.
+
+【 💡 Astuce pratique d'intégration PC 】
+Simple Sheet ne nécessite pas de compte, mais relier votre téléphone et votre PC est très simple.
+
+1. Appuyez sur « 📱✉️ Share » sur votre téléphone.
+2. Collez l'URL générée dans une application synchronisée sur le cloud comme « Google Keep » ou un message personnel.
+3. Cliquez simplement sur l'URL sur votre PC, et la feuille de calcul s'ouvrira dans votre navigateur !
+
+(*Si vous souhaitez des liens sans expiration pour conserver à long terme ou coller directement dans Excel, veuillez utiliser « 📋 Tout Copier » dans l'Édition Pro.)
+
+【 📝 Mémo 】*Édition Pro
+Laissez des notes sur votre feuille de calcul.
+Écrivez librement des recettes, URL ou explications supplémentaires.
+(Les utilisateurs gratuits ne peuvent que "lire" les notes partagées).
+
+📋 Copy All (Tout copier) *Édition Pro
+Pour la sauvegarde, l'IA et les données
+Copie toutes les données de calcul sans omission. Le « Lien de restauration » généré ici contient directement les données, ce qui le rend [Sans expiration] pour les sauvegardes à long terme.
+Contenu copié :
+- Tous les résultats de calcul
+- Mémos
+- Lien de restauration sans expiration
+Coller dans Excel crée automatiquement un tableau à 3 colonnes.
+Également utile pour fournir des calculs à des IA comme ChatGPT.
+
+【 Importer 】
+Généralement, l'ouverture d'une URL partagée restaure la feuille automatiquement.
+Si vous souhaitez restaurer manuellement, copiez le texte de données dédié généré par "📋 Copy All" et collez-le ici. Même s'il contient des salutations, l'application n'extraira que les données pour les restaurer.
+⚠️ Attention : Coller le résumé textuel standard (5 lignes) généré par "Share" ne restaurera pas la feuille de calcul.
+
+【 Clause de non-responsabilité 】
+Les liens partagés peuvent être vus par quiconque connaît l'URL. Le développeur n'est pas responsable des dommages causés par la saisie ou le partage d'informations confidentielles. À utiliser à vos propres risques. De plus, les données jugées inappropriées peuvent être supprimées sans préavis.`,
+            de: `【 So verwenden Sie Simple Sheet 】
+Besser organisiert als ein Taschenrechner, weniger komplex als eine Tabellenkalkulation.
+Simple Sheet ist eine App, mit der Sie den „Fluss“ Ihrer Berechnungen festhalten können.
+Es verwendet nur die 4 Grundrechenarten: Addieren, Subtrahieren, Multiplizieren und Dividieren.
+
+【 Berechnungsmodus 】
+Tippen Sie auf die Schaltfläche, um die Berechnungsbasis zu wechseln.
+🏠 Basiszahl
+Berechnet anhand der „Basis“-Zahl ganz oben.
+🔗 Kette
+Berechnet durch Übernahme des Ergebnisses aus der darüber liegenden Zeile.
+
+【 Teilen und Exportieren 】
+Mit Simple Sheet können Sie Berechnungen genau so senden, wie sie sind.
+
+📱✉️ Share (Teilen)
+An andere senden & gemeinsam ansehen
+Verwenden Sie dies, um Berechnungen über Messenger-Apps, E-Mail oder soziale Netzwerke zu teilen.
+Durch Tippen auf Share werden automatisch zwei Dinge kopiert:
+- Eine Textzusammenfassung des Fortschritts von bis zu 5 Zeilen
+- Eine URL zur Wiederherstellung der Berechnung (*30 Tage gültig)
+Der Empfänger muss nur auf die URL tippen, um das gleiche Berechnungsblatt zu öffnen.
+Er kann den Inhalt überprüfen oder für eigene Zwecke bearbeiten.
+
+🔳 QR
+Persönlich teilen & auf dem PC öffnen
+Wenn Sie auf QR tippen, wird ein QR-Code auf dem Bildschirm angezeigt.
+Lassen Sie die Person vor Ihnen diesen einfach scannen, um das Blatt sofort zu teilen.
+Es ist auch äußerst praktisch, ihn mit dem eigenen PC zu scannen, um ihn auf einem größeren Bildschirm zu prüfen oder die Daten in Excel einzufügen.
+(*Das über den QR-Code geöffnete Blatt ist ebenfalls 30 Tage gültig)
+
+【 💾 Daten speichern 】
+Speichern Sie Berechnungsdaten (Titel, Zeilen, Notizen) lokal.
+Kostenlose Version erlaubt 1 Speicherung. Die Pro-Version hebt dieses Limit auf.
+⚠️ Hinweis: Daten werden strikt auf diesem Browser gespeichert. Wenn Sie das Gerät wechseln oder den Browserverlauf löschen, werden die Daten gelöscht und können nicht übertragen werden.
+
+【 💡 Praktischer Tipp zur PC-Integration 】
+Simple Sheet erfordert kein Konto, aber die Verbindung zwischen Smartphone und PC ist ganz einfach.
+
+1. Tippen Sie auf Ihrem Smartphone auf „📱✉️ Share“.
+2. Fügen Sie die generierte URL in eine Cloud-synchronisierte App wie „Google Keep“ ein.
+3. Klicken Sie einfach auf die URL auf Ihrem PC, und die Berechnungs-Tabelle wird in Ihrem Browser geöffnet!
+
+(*Wenn Sie Links ohne Ablaufdatum für langfristige Backups wünschen oder direkt in Excel einfügen möchten, verwenden Sie bitte „📋 Alles Kopieren“ in der Pro-Version.)
+
+【 📝 Notizblock 】*Pro-Version
+Hinterlassen Sie Notizen auf Ihrer Berechnungs-Tabelle.
+Schreiben Sie Rezepte, URLs oder zusätzliche Erklärungen frei auf und speichern Sie diese.
+(Nutzer der kostenlosen Version können geteilte Notizen nur "lesen").
+
+📋 Copy All (Alles kopieren) *Pro-Version
+Für Speicherung, KI und Datenexport
+Kopiert alle Berechnungsdaten lückenlos. Der hier generierte „Wiederherstellungs-Link“ enthält direkt die eingebetteten Daten, was ihn für Speicherzwecke [Ohne Ablaufdatum] macht.
+Kopierter Inhalt:
+- Alle Berechnungsergebnisse
+- Notizen
+- Wiederherstellungs-Link ohne Ablaufdatum
+Das Einfügen in Excel erstellt automatisch eine Tabelle mit 3 Spalten.
+Auch nützlich, um Berechnungen an KIs wie ChatGPT zu übermitteln.
+
+【 Importieren 】
+Normalerweise stellt das Öffnen einer freigegebenen URL das Blatt automatisch wieder her.
+Wenn Sie manuell wiederherstellen möchten, fügen Sie den von "📋 Copy All" generierten Datentext hier ein. Selbst wenn er Begrüßungen enthält, extrahiert die App nur die Daten.
+⚠️ Achtung: Das Einfügen der von "Share" generierten Standard-Textzusammenfassung (5 Zeilen) stellt das Berechnungsblatt NICHT wieder her.
+
+【 Haftungsausschluss 】
+Geteilte Links können von jedem eingesehen werden, der die URL kennt. Der Entwickler haftet nicht für Schäden, die durch die Eingabe oder das Teilen vertraulicher Informationen entstehen. Nutzung auf eigene Gefahr. Als unangemessen erachtete Daten können ohne Vorankündigung gelöscht werden.`,
+            ru: `【 Как использовать Simple Sheet 】
+Организованнее, чем калькулятор, и не так сложно, как таблица.
+Simple Sheet — это приложение, позволяющее сохранять "поток" ваших вычислений.
+Используются только 4 базовые операции: сложение, вычитание, умножение и деление.
+
+【 Режим вычислений 】
+Нажмите кнопку для переключения базы расчета.
+🏠 Базовое число
+Вычисляет, используя число "База" в самом верху.
+🔗 Цепочка
+Вычисляет, перенося результат из верхней строки.
+
+【 Поделиться и Экспорт 】
+Simple Sheet позволяет отправлять расчеты в исходном виде.
+
+📱✉️ Share (Поделиться)
+Отправить другим и посмотреть вместе
+Используйте это для обмена расчетами через мессенджеры, почту или соцсети.
+Нажатие на Share автоматически копирует две вещи:
+- Текстовую сводку прогресса (до 5 строк)
+- URL-ссылку для восстановления расчетов (*Действительна 30 дней)
+Получателю достаточно нажать на ссылку, чтобы открыть ту же таблицу.
+Он может проверить содержимое или отредактировать для собственного использования.
+
+🔳 QR
+Поделиться лично и открыть на ПК
+При нажатии QR на экране отобразится QR-код.
+Попросите человека отсканировать его камерой телефона, чтобы мгновенно поделиться.
+Также очень удобно отсканировать его с ПК для проверки на большом экране или вставки данных в Excel.
+(*Таблица, открытая по QR-коду, также действительна 30 дней)
+
+【 💾 Сохранение данных 】
+Сохраняйте данные расчетов (заголовок, строки, заметки) локально.
+Бесплатная версия: 1 сохранение. Pro версия снимает это ограничение.
+⚠️ Примечание: Данные сохраняются строго в этом браузере. Если вы смените устройство или очистите историю браузера, данные будут стерты и не могут быть перенесены.
+
+【 💡 Удобный трюк для интеграции с ПК 】
+Simple Sheet не требует создания учетной записи, но связать телефон и ПК очень просто.
+
+1. Нажмите «📱✉️ Share» на вашем телефоне.
+2. Вставьте созданный URL-адрес в облачное приложение, такое как «Google Keep» или «Избранное» в Telegram.
+3. Просто нажмите на URL-адрес на вашем ПК, и таблица вычислений откроется в вашем браузере!
+
+(*Если вам нужны бессрочные ссылки для долгосрочного хранения или вы хотите вставить данные прямо в Excel, используйте «📋 Copy All» в Pro-версии.)
+
+【 📝 Заметки 】*Pro Версия
+Оставляйте заметки к вашим расчетам.
+Свободно записывайте рецепты, URL-адреса или пояснения и сохраняйте их.
+(Пользователи бесплатной версии могут только "читать" общие заметки).
+
+📋 Copy All (Копировать все) *Pro Версия
+Для сохранения, ИИ и экспорта данных
+Копирует все данные расчетов без пропусков. Сгенерированная "Ссылка для восстановления" имеет встроенные данные, что делает ее [Бессрочной] для длительного хранения.
+Скопированное содержимое:
+- Все результаты расчетов
+- Заметки
+- Бессрочная ссылка для восстановления
+Вставка в Excel автоматически создает таблицу из 3 столбцов.
+Также полезно для ввода расчетов в ИИ, такие как ChatGPT.
+
+【 Импорт 】
+Обычно открытие общей ссылки автоматически восстанавливает таблицу.
+Если нужно восстановить вручную, скопируйте текст с данными, созданный через "📋 Copy All", и вставьте сюда. Даже если там есть приветствия, приложение извлечет только данные.
+⚠️ Внимание: Вставка стандартной текстовой сводки (5 строк), созданной через "Share", НЕ восстановит таблицу.
+
+【 Отказ от ответственности 】
+Доступ к общим ссылкам открыт всем, кто знает URL. Разработчик не несет ответственности за любой ущерб, вызванный вводом или передачей конфиденциальной информации. Используйте на свой страх и риск. Кроме того, данные, признанные неприемлемыми, могут быть удалены без уведомления.`
         };
 
-        const manualFooterFree = { 
-            ja: "【機能制限について】\nメモ帳の編集・オールコピー機能はPro版限定です。",
-            en: "【Feature Limitations】\nMemo editing and Copy All are Pro version features.",
-            zh: "【关于功能限制】\n编辑备忘录和全部复制是 Pro 版的功能。",
-            ko: "【기능 제한에 대해】\n메모 작성 및 전체 복사는 Pro 버전의 기능입니다.",
-            es: "【Limitaciones de funciones】\nEditar notas y Copiar Todo son funciones de la versión Pro.",
-            pt: "【Limitações de recursos】\nEditar notas e Copiar Tudo são recursos da versão Pro.",
-            fr: "【Limitations des fonctionnalités】\nLa modification de notes et Tout Copier sont des fonctionnalités de la version Pro.",
-            ru: "【Ограничения функций】\nРедактирование заметок и Копировать все — это функции Pro-версии.",
-            de: "【Funktionseinschränkungen】\nDas Bearbeiten von Notizen und Alles Kopieren sind Funktionen der Pro-Version."
-        };
+        const manualFooterFree = { ja: "", en: "", zh: "", ko: "", es: "", pt: "", fr: "", ru: "", de: "" };
+        const manualFooterPro = { ja: "", en: "", zh: "", ko: "", es: "", pt: "", fr: "", ru: "", de: "" };
 
-        const manualFooterPro = { 
-            ja: "【Pro版】\n現在Pro版です。\n全機能が利用可能です。", en: "【Pro Version】\nThis is the Pro version.\nAll features unlocked.",
-            zh: "【Pro 版】\n所有功能已解锁。", ko: "【Pro 버전】\n모든 기능이 잠금 해제되었습니다.",
-            es: "【Versión Pro】\nTodas las funciones desbloqueadas.", pt: "【Versão Pro】\nTodos os recursos desbloqueados.",
-            fr: "【Version Pro】\nToutes les fonctions sont débloquées.", ru: "【Версия Pro】\nВсе функции разблокированы.",
-            de: "【Pro-Version】\nAlle Funktionen freigeschaltet."
-        };
-
-        // ★ 6. ダイアログの多言語テキストを追加 ★
         const languageMap = {
             en: { title: "Simple Sheet", masterLabelName: "Title", baseName: "Base", rowLabel: "Item Name", copyMsg: "Copied!", btnImport: "Import", btnReset: "Reset", confirmReset: "Reset all?", confirmOverwrite: "Free version limit: 1 save. Overwrite?", addRow: "+ Row", btnShare: "📱✉️ Share", btnQR: "🔳 QR", btnCopyAll: "Copy All", calcTitle: "Calculator", btnSave: "💾 Save",
                   btnHelp: "❓ Help", btnClose: "Close", btnPrint: "Print", msgSave: "Saved!", msgLoad: "Loaded!", confirmDel: "Delete?", msgError: "Error", impTitle:"Import Data", impDesc:"Paste data here:", btnLoad:"Load Data", memoTitle: "📝 MEMO",
@@ -528,7 +1124,6 @@
                 showMsg("Loading...");
                 const data = await window.getFirebaseData(shareId);
                 if (data) {
-                    // ★ 30日チェック（過去の数字と新しいTimestampに対応） ★
                     let createdAt = 0;
                     if (data.createdAt) {
                         createdAt = data.createdAt.seconds ? (data.createdAt.seconds * 1000) : data.createdAt;
@@ -601,9 +1196,8 @@
             }
         }
 
-        // ★ 3. 初回シェア警告の管理ロジック ★
         function handleShareClick(isQR) {
-            if (isSharing) return; // 連打防止ロック
+            if (isSharing) return; 
 
             const hasSeenWarning = localStorage.getItem('hasSeenShareWarning') === 'true';
             const d = languageMap[currentLanguage] || languageMap['en'];
@@ -634,7 +1228,7 @@
             try {
                 showMsg(languageMap[currentLanguage].msgGenerating || "Generating QR...");
                 const data = getScreenData();
-                data.createdAt = Date.now(); // フォールバック(JSON)用のタイムスタンプ
+                data.createdAt = Date.now(); 
                 
                 let shareUrl = "";
                 if (window.saveFirebaseData) {
@@ -663,7 +1257,7 @@
                 showMsg(languageMap[currentLanguage].msgGenerating || "Generating link...");
                 const d = languageMap[currentLanguage] || languageMap['en'];
                 const data = getScreenData();
-                data.createdAt = Date.now(); // フォールバック(JSON)用のタイムスタンプ
+                data.createdAt = Date.now(); 
 
                 let shareUrl = "";
                 if (window.saveFirebaseData) {
@@ -683,7 +1277,7 @@
                 const baseVal = document.getElementById('masterInput').value || '0';
 
                 let text = `${title}\n\n`;
-                text += `${baseName} : ${baseVal}  \n`; // Android同様 Reddit用スペース2つ
+                text += `${baseName} : ${baseVal}  \n`; 
 
                 const itemsTextArr = [];
                 document.querySelectorAll('#rows-container .row').forEach(r => {
@@ -860,7 +1454,6 @@
 
             document.getElementById('btnReset').textContent = d.btnReset;
             document.getElementById('addBtn').textContent = d.addRow;
-            // document.getElementById('copyShareBtn').textContent = d.btnShare;  // 削除済み
             if(document.getElementById('qrBtn')) document.getElementById('qrBtn').textContent = d.btnQR || "🔳 QR";
             document.getElementById('ui-calcTitle').textContent = d.calcTitle;
             document.getElementById('btnSaveMemory').textContent = d.btnSave;
@@ -872,7 +1465,9 @@
             
             document.getElementById('manTitle').textContent = d.btnHelp;
             document.getElementById('btnManual').textContent = d.btnHelp;
+            
             document.getElementById('manBody').innerText = (manualBase[currentLanguage]||manualBase['en']) + "\n\n" + (isPro ? (manualFooterPro[currentLanguage]||manualFooterPro['en']) : (manualFooterFree[currentLanguage]||manualFooterFree['en']));
+            
             document.getElementById('manClose').textContent = d.btnClose;
             document.getElementById('impTitle').textContent = d.impTitle;
             document.getElementById('impDesc').textContent = d.impDesc;
@@ -915,7 +1510,7 @@
         function formatNum(num) { return stripError(num).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 3 }); }
 
         function updateDisplay() {
-            const masterValStr = document.getElementById('masterInput').value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/．/g, '.');
+            const masterValStr = document.getElementById('masterInput').value.replace(/,/g, '').replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/．/g, '.');
             const mVal = parseFloat(masterValStr) || 0;
             let chain = mVal;
             
@@ -961,7 +1556,7 @@
             return {
                 n: document.getElementById('masterLabel').value, 
                 bn: document.getElementById('baseNameInput').value,
-                b: document.getElementById('masterInput').value, 
+                b: document.getElementById('masterInput').value.replace(/,/g, ''), 
                 m: document.getElementById('memoArea').value, 
                 r: Array.from(document.querySelectorAll('#rows-container .row')).map(r => {
                     let rawVal = r.querySelector('.multiplier-input').value;
@@ -982,6 +1577,7 @@
             document.getElementById('masterLabel').value = s.n || s.name || s.masterLabel || '';
             document.getElementById('baseNameInput').value = s.bn || s.baseName || '';
             document.getElementById('masterInput').value = s.b || s.base || s.masterInput || '';
+            formatNumberInput(document.getElementById('masterInput'));
             
             let memoText = s.m || s.memo || '';
             memoText = memoText.replace(/([^\s])(https?:\/\/)/gi, '$1\n$2');
@@ -1069,7 +1665,6 @@
         }
 
         function addRow(s=null) {
-            // ★ 4. 最大100行制限 ★
             if (document.querySelectorAll('#rows-container .row').length >= 100) {
                 showMsg("Max 100 rows limit."); return;
             }
@@ -1080,7 +1675,6 @@
             const isChain = s ? (s.baseMode==='chain') : true; 
             const val = s ? s.multiplier : '';
 
-            // ★ 4. input の maxlength="50" と、number の 15桁制限(oninput) を追加 ★
             div.innerHTML = `
                 <input type="text" class="text-label-input" maxlength="50" placeholder="${ph}" value="${s?escapeHtml(s.label):''}" oninput="saveSettings()">
                 <div class="calc-area">
@@ -1190,6 +1784,8 @@
             updateMemoLinks();
             document.getElementById('rows-container').innerHTML = "";
             rows.forEach(r => addRow(r)); 
+            
+            formatNumberInput(document.getElementById('masterInput'));
             updateDisplay();
             return true;
         }
