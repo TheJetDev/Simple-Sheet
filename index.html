@@ -367,7 +367,7 @@
                         <span style="font-weight:bold; color:#dc3545; margin-right:5px; font-size:1.2em;">🏠</span>
                         <input type="text" id="baseNameInput" maxlength="50" style="border:none; outline:none; font-weight:bold; color:#dc3545; width:100%; font-size:1.1em; background:transparent;" placeholder="Base" oninput="saveSettings()">
                     </div>
-                    <input type="text" inputmode="decimal" id="masterInput" class="master-input" placeholder="" oninput="formatNumberInput(this); updateDisplay();">
+                    <input type="number" step="any" id="masterInput" class="master-input" placeholder="" oninput="if(this.value.length > 15) this.value = this.value.slice(0, 15); updateDisplay();">
                 </div>
                 <div id="rows-container"></div>
                 
