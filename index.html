@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Simple Sheet</title>
-  <meta http-equiv="refresh" content="0; url=https://simple-sheet-iota.vercel.app/">
+  <title>Redirecting...</title>
   <style>
-    /* 画面を真っ白に固定する設定 */
     body { background-color: #ffffff; margin: 0; }
   </style>
+  <script>
+    // URLの語尾（?data=...など）を取得して、Vercelのトップへ引き継ぐ
+    window.location.replace("https://simple-sheet-iota.vercel.app/" + window.location.search);
+  </script>
 </head>
-<body>
-  </body>
+<body></body>
 </html>
